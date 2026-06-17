@@ -110,7 +110,7 @@ html.dark .pop-head{background:#2D2D2D}
 #search-clear.visible{display:flex}
 
 /* ── FLOATING BUTTONS ────────────────────────── */
-#theme-toggle,#feed-btn,#locate-btn,#planner-btn,#compass-btn{
+#theme-toggle,#feed-btn,#locate-btn,#planner-btn,#compass-btn,#tilt-btn{
   position:absolute;z-index:50;
   width:44px;height:44px;
   background:var(--panel);
@@ -126,6 +126,7 @@ html.dark .pop-head{background:#2D2D2D}
   outline:2px solid var(--acc);outline-offset:2px;
 }
 #compass-btn{top:16px;right:16px;bottom:auto;font-size:13px;font-weight:800}
+#tilt-btn{top:68px;right:16px;bottom:auto;font-size:11px;font-weight:800;letter-spacing:.02em}
 /* search-bar занимает top:64px */
 #planner-btn{top:112px;right:16px;bottom:auto}
 #theme-toggle{bottom:80px;right:16px;top:auto}
@@ -152,8 +153,8 @@ html.dark .pop-head{background:#2D2D2D}
 }
 .sheet-close-btn:hover{background:var(--border)}
 #compass-btn.is-active{color:var(--acc)}
-#theme-toggle:hover,#feed-btn:hover,#locate-btn:hover,#planner-btn:hover,#compass-btn:hover,#search-bar:hover:not(.search-open){background:var(--bg);box-shadow:0 4px 16px rgba(0,0,0,.18);transform:translateY(-1px)}
-#theme-toggle:active,#feed-btn:active,#locate-btn:active,#planner-btn:active,#compass-btn:active{transform:scale(.94);box-shadow:var(--sh)}
+#theme-toggle:hover,#feed-btn:hover,#locate-btn:hover,#planner-btn:hover,#compass-btn:hover,#tilt-btn:hover,#search-bar:hover:not(.search-open){background:var(--bg);box-shadow:0 4px 16px rgba(0,0,0,.18);transform:translateY(-1px)}
+#theme-toggle:active,#feed-btn:active,#locate-btn:active,#planner-btn:active,#compass-btn:active,#tilt-btn:active{transform:scale(.94);box-shadow:var(--sh)}
 .compass-face{position:relative;width:22px;height:22px;border-radius:50%;border:1.6px solid currentColor;display:flex;align-items:center;justify-content:center;line-height:1}
 #compass-needle{display:block;transform-origin:center;transition:transform .18s ease}
 
@@ -434,6 +435,7 @@ html.dark .pop-date-row input{background:#333;color:var(--t1);border-color:var(-
 body{padding-bottom:env(safe-area-inset-bottom);padding-top:env(safe-area-inset-top)}
 #deck-canvas,#map-labels{padding-bottom:0}
 #compass-btn{top:calc(12px + env(safe-area-inset-top))}
+  #tilt-btn{top:calc(64px + env(safe-area-inset-top))}
 #search-bar{top:calc(60px + env(safe-area-inset-top))}
 #planner-btn{top:calc(108px + env(safe-area-inset-top))}
 #theme-toggle{bottom:calc(80px + env(safe-area-inset-bottom))}
@@ -661,6 +663,7 @@ body{padding-bottom:env(safe-area-inset-bottom);padding-top:env(safe-area-inset-
 </button>
 <button id="planner-btn" title="Планировщик" onclick="togglePlannerMode()">⇄</button>
 <button id="compass-btn" title="Компас" onclick="resetCompassOrientation()"><span class="compass-face"><span id="compass-needle">N</span></span></button>
+<button id="tilt-btn" title="Перспектива" onclick="toggleTilt()">3D</button>
 
 <!-- DESKTOP PANEL -->
 <div id="desk-panel">
@@ -3348,14 +3351,14 @@ function buildLayers(){
   return layers;
 }
 
-// 1×1 dark-navy pixel PNG (для тёмного оверлея в dark mode)
+// 1×1 dark-navy pixel (для тёмного оверлея)
 const DARK_PX='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGPg4pcDAABeADiYP+8qAAAAAElFTkSuQmCC';
-const OSM_URL='https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const VOYAGER='https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
 
-function getBasemapUrl(){ return OSM_URL; }
+function getBasemapUrl(){ return VOYAGER; }
 
 function mkTile(url,id){
-  return new TileLayer({id,data:url,minZoom:0,maxZoom:19,tileSize:256,
+  return new TileLayer({id,data:url,minZoom:0,maxZoom:18,tileSize:256,
     renderSubLayers(p){
       const[[x0,y0],[x1,y1]]=p.tile.boundingBox;
       return new BitmapLayer(p,{data:null,image:p.data,bounds:[x0,y0,x1,y1]});
@@ -3364,18 +3367,10 @@ function mkTile(url,id){
 }
 
 function getBasemapLayers(){
-  const base = mkTile(OSM_URL,'base');
+  const base=mkTile(VOYAGER,'base');
   if(document.documentElement.classList.contains('dark')){
-    // OSM под тёмным оверлеем — улицы просвечивают, GTFS слои рендерятся поверх
-    const overlay = new BitmapLayer({
-      id:'dark-overlay',
-      image: DARK_PX,
-      bounds:[-180,-85.05,180,85.05],
-      opacity: 0.82,
-    });
-    return[base, overlay];
+    return[base,new BitmapLayer({id:'dark-overlay',image:DARK_PX,bounds:[-180,-85.05,180,85.05],opacity:0.80})];
   }
-  // Светлая тема: OSM с номерами домов от zoom 15
   return[base];
 }
 
@@ -3408,6 +3403,20 @@ function resetCompassOrientation(animated=true){
   updateCompassButton();
 }
 
+function toggleTilt(){
+  const view=S.viewState||{};
+  const currentPitch=Number.isFinite(view.pitch)?view.pitch:0;
+  const targetPitch=currentPitch>5?0:45;
+  const next={
+    longitude:view.longitude,latitude:view.latitude,zoom:view.zoom,
+    bearing:view.bearing||0,pitch:targetPitch,transitionDuration:500
+  };
+  S.viewState={...view,...next};
+  deckgl.setProps({initialViewState:next});
+  const btn=document.getElementById('tilt-btn');
+  if(btn)btn.textContent=targetPitch>5?'2D':'3D';
+}
+
 function applyFirstOpenOrientation(){
   const storageKey='kamchatka.transport.compass-init-v1';
   if(localStorage.getItem(storageKey)){
@@ -3422,7 +3431,7 @@ function applyFirstOpenOrientation(){
 const deckgl=new Deck({
   canvas:'canvas',width:'100%',height:'100%',
   initialViewState:{longitude:158.700,latitude:53.015,zoom:12.5,pitch:0,bearing:0},
-  controller:true,layers:[],useDevicePixels:true,
+  controller:{dragRotate:true,touchRotate:true,minPitch:0,maxPitch:60},layers:[],useDevicePixels:true,
   onClick: info=>handleMapClick(info),
   onDragStart:()=>{
     closePopup();
