@@ -3301,12 +3301,8 @@ function buildLayers(){
   return layers;
 }
 
-const STADIA_KEY='4e9a5629-2d69-4cac-a920-4e4c94258f18';
-const STYLE_LIGHT={
-  version:8,
-  sources:{'stadia':{type:'raster',tiles:[`https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}.png?api_key=${STADIA_KEY}`],tileSize:256,attribution:'© Stadia Maps © OpenMapTiles © OpenStreetMap'}},
-  layers:[{id:'stadia-tiles',type:'raster',source:'stadia'}]
-};
+const MAPBOX_TOKEN='pk.eyJ1IjoiYW50b24wNjEyIiwiYSI6ImNtcWltNWt2NzAwNW0ydHM5eXlkcGZ6cjAifQ.8PaloVhi21MZLJfuFNIibA';
+const MAPBOX_STYLE=`https://api.mapbox.com/styles/v1/anton0612/cmqinytnv001z01pmbzqogxpa?access_token=${MAPBOX_TOKEN}`;
 
 function normalizeBearing(value){
   const bearing=Number.isFinite(value)?value:0;
@@ -3364,10 +3360,14 @@ function applyFirstOpenOrientation(){
 
 const mlMap=new maplibregl.Map({
   container:'map',
-  style:STYLE_LIGHT,
+  style:MAPBOX_STYLE,
   center:[158.700,53.015],
   zoom:12.5,pitch:0,bearing:0,
   maxPitch:60,
+  transformRequest:(url)=>{
+    if(url.startsWith('https://api.mapbox.com')||url.startsWith('https://events.mapbox.com'))
+      return{url:url+(url.includes('?')?'&':'?')+'access_token='+MAPBOX_TOKEN};
+  }
 });
 
 const{MapboxOverlay}=deck;
@@ -3419,7 +3419,7 @@ function precacheRegionTiles(){
   // Петропавловск-Камчатский + ближайшие окрестности
   const BBOX={minLon:158.35,maxLon:159.10,minLat:52.75,maxLat:53.30};
   const ZOOMS=[8,9,10,11,12,13,14];
-  const TILE_URL=`https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}.png?api_key=${STADIA_KEY}`;
+  const TILE_URL=`https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}.png`;
   const urls=[];
   for(const z of ZOOMS){
     const x0=lon2tile(BBOX.minLon,z),x1=lon2tile(BBOX.maxLon,z);
