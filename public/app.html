@@ -3350,24 +3350,24 @@ function buildLayers(){
 
 function getBasemapUrl(){
   return document.documentElement.classList.contains('dark')
-    ?'https://basemaps.cartocdn.com/dark_matter_nolabels/{z}/{x}/{y}{r}.png'
-    :'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png';
+    ?'https://basemaps.cartocdn.com/dark_matter_nolabels/{z}/{x}/{y}.png'
+    :'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
 }
-function mkTile(url,id){
-  return new TileLayer({id,data:url,minZoom:0,maxZoom:19,tileSize:256,
+function mkTile(url,id,opacity){
+  return new TileLayer({id,data:url,minZoom:0,maxZoom:18,tileSize:256,
     renderSubLayers(p){
       const[[x0,y0],[x1,y1]]=p.tile.boundingBox;
-      return new BitmapLayer(p,{data:null,image:p.data,bounds:[x0,y0,x1,y1]});
+      return new BitmapLayer(p,{data:null,image:p.data,bounds:[x0,y0,x1,y1],opacity:opacity??1});
     }
   });
 }
 function getBasemapLayers(){
   if(document.documentElement.classList.contains('dark')){
-    const base='https://basemaps.cartocdn.com/dark_matter_nolabels/{z}/{x}/{y}{r}.png';
-    const lbl='https://basemaps.cartocdn.com/dark_matter_only_labels/{z}/{x}/{y}{r}.png';
-    return[mkTile(base,'base'),mkTile(lbl,'lbl1'),mkTile(lbl+'?2','lbl2')];
+    const base='https://basemaps.cartocdn.com/dark_matter_nolabels/{z}/{x}/{y}.png';
+    const lbl='https://basemaps.cartocdn.com/dark_matter_only_labels/{z}/{x}/{y}.png';
+    return[mkTile(base,'base'),mkTile(lbl,'lbl1',0.9),mkTile(lbl+'?2','lbl2',0.8),mkTile(lbl+'?3','lbl3',0.7)];
   }
-  return[mkTile('https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png','base')];
+  return[mkTile('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png','base')];
 }
 
 function normalizeBearing(value){
