@@ -1,0 +1,36 @@
+{
+  "name": "pwa",
+  "version": "1.0.0",
+  "description": "Офлайн-карта общественного транспорта Петропавловска-Камчатского с реалтайм-данными, GTFS-расписанием и планировщиком маршрутов.",
+  "main": "index.js",
+  "directories": {
+    "doc": "doc"
+  },
+  "scripts": {
+    "test":       "npm run test:unit && npm run test:gtfs",
+    "test:unit":  "vitest run tests/unit/utils.test.js",
+    "test:gtfs":  "vitest run tests/unit/gtfs.test.js",
+    "test:e2e":   "playwright test",
+    "test:all":   "npm run test:unit && npm run test:gtfs && npm run test:e2e",
+    "test:cover": "vitest run --coverage",
+    "validate":   "python scripts/validate-feed.py public/gtfs"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sayr777/kamchatka-transit.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sayr777/kamchatka-transit/issues"
+  },
+  "homepage": "https://github.com/sayr777/kamchatka-transit#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.61.0",
+    "@vitest/coverage-v8": "^4.1.9",
+    "playwright": "^1.61.0",
+    "vitest": "^4.1.9"
+  }
+}
