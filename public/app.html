@@ -3351,14 +3351,16 @@ function buildLayers(){
   return layers;
 }
 
-// 1×1 dark-navy pixel (для тёмного оверлея)
-const DARK_PX='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGPg4pcDAABeADiYP+8qAAAAAElFTkSuQmCC';
+// 1×1 тёмно-синий пиксель — оверлей тёмной темы
+// Белые подписи Voyager сквозь него дают синеватый цвет
+const BLUE_PX='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgEHIDAABuAFkMYsG8AAAAAElFTkSuQmCC';
 const VOYAGER='https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
+const OSM='https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
-function getBasemapUrl(){ return VOYAGER; }
+function getBasemapUrl(){ return document.documentElement.classList.contains('dark')?VOYAGER:OSM; }
 
 function mkTile(url,id){
-  return new TileLayer({id,data:url,minZoom:0,maxZoom:18,tileSize:256,
+  return new TileLayer({id,data:url,minZoom:0,maxZoom:19,tileSize:256,
     renderSubLayers(p){
       const[[x0,y0],[x1,y1]]=p.tile.boundingBox;
       return new BitmapLayer(p,{data:null,image:p.data,bounds:[x0,y0,x1,y1]});
@@ -3366,12 +3368,26 @@ function mkTile(url,id){
   });
 }
 
+function applyMapFilter(){
+  const c=document.getElementById('canvas');
+  if(!c)return;
+  // Светлая тема: контраст +20%, дороги чётче
+  c.style.filter=document.documentElement.classList.contains('dark')
+    ?''
+    :'contrast(1.22) saturate(0.75)';
+}
+
 function getBasemapLayers(){
-  const base=mkTile(VOYAGER,'base');
+  applyMapFilter();
   if(document.documentElement.classList.contains('dark')){
-    return[base,new BitmapLayer({id:'dark-overlay',image:DARK_PX,bounds:[-180,-85.05,180,85.05],opacity:0.80})];
+    // Voyager + тёмно-синий оверлей 78% → белые подписи дают синий цвет
+    return[
+      mkTile(VOYAGER,'base'),
+      new BitmapLayer({id:'dark-overlay',image:BLUE_PX,bounds:[-180,-85.05,180,85.05],opacity:0.78})
+    ];
   }
-  return[base];
+  // OSM: чёрные подписи, контрастные дороги, номера домов с zoom 15
+  return[mkTile(OSM,'base')];
 }
 
 function normalizeBearing(value){
