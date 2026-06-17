@@ -13,6 +13,8 @@
 <script src="./vendor/jszip.min.js"></script>
 <script>window.define=window.__savedDefine;delete window.__savedDefine;</script>
 <script src="./vendor/deck.gl.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
 <script src="./vendor/papaparse.min.js"></script>
 <link href="./vendor/fonts/fonts.css" rel="stylesheet">
 <link rel="manifest" href="./manifest.json">
@@ -160,7 +162,7 @@ html.dark .pop-head{background:#2D2D2D}
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;overflow:hidden;font-family:var(--body);font-size:var(--fs-md);line-height:var(--lh);background:var(--bg);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-#canvas{position:fixed;inset:0;width:100vw;height:100vh}
+#map{position:fixed;inset:0;width:100vw;height:100vh}
 
 /* shared components */
 .route-badge-wrap{display:inline-flex;align-items:center;gap:6px;background:var(--acc);color:#fff;padding:4px 12px 4px 9px;border-radius:6px;font-family:var(--head);font-size:11px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
@@ -596,7 +598,7 @@ body{padding-bottom:env(safe-area-inset-bottom);padding-top:env(safe-area-inset-
 </head>
 <body>
 
-<canvas id="canvas"></canvas>
+<div id="map"></div>
 <div id="labels-container"></div>
 <div id="bus-pin" class="bus-pin" style="display:none">
   <div class="bus-marker" id="bus-marker">
@@ -3298,9 +3300,7 @@ function buildPlannerLayers(){
 function buildLayers(){
   const visibleVehicles=getVisibleVehiclesForMap();
   if(!S.route||!S.tripsData){
-    const layers=[
-      ...getBasemapLayers()
-    ];
+    const layers=[];
     layers.push(...buildRoutePreviewLayers());
     if(visibleVehicles.length){
       const F={fontFamily:'Arial,sans-serif',fontWeight:'bold',billboard:true,background:false,getTextAnchor:'middle',getAlignmentBaseline:'bottom'};
@@ -3325,7 +3325,6 @@ function buildLayers(){
   const bp=busPos();
   const sz=dynSizes();
   const layers=[
-    ...getBasemapLayers(),
     new PathLayer({id:'rs',data:[{path:S.shapePath}],getPath:d=>d.path,getColor:[r,g,b,25],getWidth:8,widthMinPixels:Math.round(sz.lineW*1.4),rounded:true,capRounded:true}),
     new PathLayer({id:'rl',data:[{path:S.shapePath}],getPath:d=>d.path,getColor:[r,g,b,230],getWidth:4,widthMinPixels:Math.round(sz.lineW),rounded:true,capRounded:true}),
     new TripsLayer({id:'trips',data:S.tripsData,getPath:d=>d.path,getTimestamps:d=>d.timestamps,getColor:[r,g,b,255],currentTime:ct,trailLength:60,widthMinPixels:Math.round(sz.lineW),rounded:true,capRounded:true}),
@@ -3352,31 +3351,17 @@ function buildLayers(){
 }
 
 const STADIA_KEY='4e9a5629-2d69-4cac-a920-4e4c94258f18';
-const STADIA_LIGHT=`https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}.png?api_key=${STADIA_KEY}`;
 const MAPBOX_TOKEN='pk.eyJ1IjoiYW50b24wNjEyIiwiYSI6ImNtcWltNWt2NzAwNW0ydHM5eXlkcGZ6cjAifQ.8PaloVhi21MZLJfuFNIibA';
-const MAPBOX_DARK=`https://api.mapbox.com/styles/v1/anton0612/cmqimb5xg001y01pm1rsu69qr/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`;
 
-function mkTile(url,id){
-  return new TileLayer({id,data:url,minZoom:0,maxZoom:22,tileSize:256,
-    renderSubLayers(p){
-      const[[x0,y0],[x1,y1]]=p.tile.boundingBox;
-      return new BitmapLayer(p,{data:null,image:p.data,bounds:[x0,y0,x1,y1]});
-    }
-  });
-}
+const STYLE_LIGHT={
+  version:8,
+  sources:{'stadia':{type:'raster',tiles:[`https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}.png?api_key=${STADIA_KEY}`],tileSize:256,attribution:'© Stadia Maps © OpenMapTiles © OpenStreetMap'}},
+  layers:[{id:'stadia-tiles',type:'raster',source:'stadia'}]
+};
+const STYLE_DARK=`https://api.mapbox.com/styles/v1/anton0612/cmqimb5xg001y01pm1rsu69qr?access_token=${MAPBOX_TOKEN}`;
 
-function applyMapFilter(){
-  const c=document.getElementById('canvas');
-  if(!c)return;
-  c.style.filter='';
-}
-
-function getBasemapLayers(){
-  applyMapFilter();
-  if(document.documentElement.classList.contains('dark')){
-    return[mkTile(MAPBOX_DARK,'base')];
-  }
-  return[mkTile(STADIA_LIGHT,'base')];
+function getMapStyle(){
+  return document.documentElement.classList.contains('dark')?STYLE_DARK:STYLE_LIGHT;
 }
 
 function normalizeBearing(value){
@@ -3433,26 +3418,51 @@ function applyFirstOpenOrientation(){
   setText('chip-txt','Север сверху');
 }
 
-const deckgl=new Deck({
-  canvas:'canvas',width:'100%',height:'100%',
-  initialViewState:{longitude:158.700,latitude:53.015,zoom:12.5,pitch:0,bearing:0},
-  controller:{dragRotate:true,touchRotate:true,minPitch:0,maxPitch:60},layers:[],useDevicePixels:true,
-  onClick: info=>handleMapClick(info),
-  onDragStart:()=>{
-    closePopup();
-    if(S.followVehicleId){
-      S.followVehicleId=null;
-      setText('chip-txt','Режим слежения отключён');
+const mlMap=new maplibregl.Map({
+  container:'map',
+  style:getMapStyle(),
+  center:[158.700,53.015],
+  zoom:12.5,pitch:0,bearing:0,
+  maxPitch:60,
+  transformRequest:(url)=>{
+    if(url.startsWith('https://api.mapbox.com')||url.startsWith('https://events.mapbox.com')){
+      return{url:url+(url.includes('?')?'&':'?')+'access_token='+MAPBOX_TOKEN};
     }
-  },
-  onViewStateChange:({viewState})=>{
-    S.viewState={...viewState};
-    S.zoom=viewState.zoom;
-    updateCompassButton();
-    if(!S.route)queueNearbyUpdate(false);
-    scheduleOverlayUpdate();
   }
 });
+
+const{MapboxOverlay}=deck;
+const overlay=new MapboxOverlay({interleaved:false,layers:[],onClick:info=>handleMapClick(info)});
+mlMap.addControl(overlay);
+
+mlMap.on('dragstart',()=>{
+  closePopup();
+  if(S.followVehicleId){S.followVehicleId=null;setText('chip-txt','Режим слежения отключён');}
+});
+mlMap.on('move',()=>{
+  const c=mlMap.getCenter();
+  S.viewState={longitude:c.lng,latitude:c.lat,zoom:mlMap.getZoom(),pitch:mlMap.getPitch(),bearing:mlMap.getBearing()};
+  S.zoom=mlMap.getZoom();
+  updateCompassButton();
+  if(!S.route)queueNearbyUpdate(false);
+  scheduleOverlayUpdate();
+});
+
+function flyTo({longitude,latitude,zoom,pitch,bearing,transitionDuration}){
+  mlMap.easeTo({
+    center:[longitude??mlMap.getCenter().lng, latitude??mlMap.getCenter().lat],
+    zoom:zoom??mlMap.getZoom(),
+    pitch:pitch??mlMap.getPitch(),
+    bearing:bearing??mlMap.getBearing(),
+    duration:transitionDuration??500
+  });
+}
+
+// совместимость: deckgl.setProps({initialViewState: ...}) → flyTo(...)
+const deckgl={setProps:({initialViewState,layers})=>{
+  if(initialViewState)flyTo(initialViewState);
+  if(layers)overlay.setProps({layers});
+}};
 
 window.addEventListener('resize',()=>{
   if(!S.route)queueNearbyUpdate(false);
@@ -3597,7 +3607,7 @@ let lastTs=null;
   if(!S.paused){if(lastTs!==null){delta=(ts-lastTs);S.currentTime+=delta*0.12*S.animSpeed;}lastTs=ts;}else{lastTs=ts;}
   if(delta>0)advanceVehicles(delta);
   followSelectedVehicle(false);
-  deckgl.setProps({layers:buildLayers()});
+  overlay.setProps({layers:buildLayers()});
   if(S.tripsData) updateProgressUI();
   updateBusPin();
   requestAnimationFrame(loop);
@@ -3873,7 +3883,7 @@ function toggleTheme(){
   const dark=document.documentElement.classList.toggle('dark');
   setThemeIcon(dark);
   localStorage.setItem('theme',dark?'dark':'light');
-  deckgl.setProps({layers:buildLayers()});
+  mlMap.setStyle(getMapStyle());
 }
 
 /* ── PANEL OPEN / CLOSE ──────────────────────── */
