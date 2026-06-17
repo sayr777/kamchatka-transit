@@ -3353,10 +3353,11 @@ function buildLayers(){
 
 const STADIA_KEY='4e9a5629-2d69-4cac-a920-4e4c94258f18';
 const STADIA_LIGHT=`https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}.png?api_key=${STADIA_KEY}`;
-const STADIA_DARK=`https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png?api_key=${STADIA_KEY}`;
+const MAPBOX_TOKEN='pk.eyJ1IjoiYW50b24wNjEyIiwiYSI6ImNtcWltNWt2NzAwNW0ydHM5eXlkcGZ6cjAifQ.8PaloVhi21MZLJfuFNIibA';
+const MAPBOX_DARK=`https://api.mapbox.com/styles/v1/anton0612/cmqimb5xg001y01pm1rsu69qr/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`;
 
 function mkTile(url,id){
-  return new TileLayer({id,data:url,minZoom:0,maxZoom:20,tileSize:256,
+  return new TileLayer({id,data:url,minZoom:0,maxZoom:22,tileSize:256,
     renderSubLayers(p){
       const[[x0,y0],[x1,y1]]=p.tile.boundingBox;
       return new BitmapLayer(p,{data:null,image:p.data,bounds:[x0,y0,x1,y1]});
@@ -3373,7 +3374,7 @@ function applyMapFilter(){
 function getBasemapLayers(){
   applyMapFilter();
   if(document.documentElement.classList.contains('dark')){
-    return[mkTile(STADIA_DARK,'base')];
+    return[mkTile(MAPBOX_DARK,'base')];
   }
   return[mkTile(STADIA_LIGHT,'base')];
 }
