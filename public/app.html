@@ -3348,27 +3348,35 @@ function buildLayers(){
   return layers;
 }
 
-function getBasemapUrl(){
-  return document.documentElement.classList.contains('dark')
-    ?'https://basemaps.cartocdn.com/dark_matter_nolabels/{z}/{x}/{y}.png'
-    :'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-}
-function mkTile(url,id,opacity){
+// 1×1 dark-navy pixel PNG (для тёмного оверлея в dark mode)
+const DARK_PX='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGPg4pcDAABeADiYP+8qAAAAAElFTkSuQmCC';
+const OSM_URL='https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+function getBasemapUrl(){ return OSM_URL; }
+
+function mkTile(url,id){
   return new TileLayer({id,data:url,minZoom:0,maxZoom:19,tileSize:256,
     renderSubLayers(p){
       const[[x0,y0],[x1,y1]]=p.tile.boundingBox;
-      return new BitmapLayer(p,{data:null,image:p.data,bounds:[x0,y0,x1,y1],opacity:opacity??1});
+      return new BitmapLayer(p,{data:null,image:p.data,bounds:[x0,y0,x1,y1]});
     }
   });
 }
+
 function getBasemapLayers(){
+  const base = mkTile(OSM_URL,'base');
   if(document.documentElement.classList.contains('dark')){
-    const base='https://basemaps.cartocdn.com/dark_matter_nolabels/{z}/{x}/{y}.png';
-    const lbl='https://basemaps.cartocdn.com/dark_matter_only_labels/{z}/{x}/{y}.png';
-    return[mkTile(base,'base'),mkTile(lbl,'lbl1',0.9),mkTile(lbl+'?2','lbl2',0.8),mkTile(lbl+'?3','lbl3',0.7)];
+    // OSM под тёмным оверлеем — улицы просвечивают, GTFS слои рендерятся поверх
+    const overlay = new BitmapLayer({
+      id:'dark-overlay',
+      image: DARK_PX,
+      bounds:[-180,-85.05,180,85.05],
+      opacity: 0.82,
+    });
+    return[base, overlay];
   }
-  // OSM standard: показывает номера домов начиная с zoom 15
-  return[mkTile('https://tile.openstreetmap.org/{z}/{x}/{y}.png','base')];
+  // Светлая тема: OSM с номерами домов от zoom 15
+  return[base];
 }
 
 function normalizeBearing(value){
