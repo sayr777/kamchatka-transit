@@ -1,0 +1,4023 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#FC3F1D" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1A1A1A" media="(prefers-color-scheme: dark)">
+<title>Камчатка.Транспорт</title>
+<script>window.__savedDefine=window.define;window.define=undefined;</script>
+<script src="./vendor/jszip.min.js"></script>
+<script>window.define=window.__savedDefine;delete window.__savedDefine;</script>
+<script src="./vendor/deck.gl.min.js"></script>
+<script src="./vendor/papaparse.min.js"></script>
+<link href="./vendor/fonts/fonts.css" rel="stylesheet">
+
+/* ── CSS СТИЛИ ──────────────────────────────────── */
+<style>
+:root{
+  /* ── Цвета 60/30/10 ── */
+  --bg:#F2F2F7;--panel:#FFFFFF;--border:#E5E5EA;
+  --t1:#1C1C1E;--t2:#636366;--t3:#AEAEB2;
+  --acc:#FC3F1D;--acc2:#FF6B4A;--ok:#34C759;--info:#3B7EFF;--warn:#FF9500;
+  /* ── Скругления ── */
+  --r:12px;--r-sm:8px;--r-lg:16px;--r-xl:20px;
+  /* ── Тени ── */
+  --sh:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+  --sh-up:0 -1px 3px rgba(0,0,0,.06),0 -4px 12px rgba(0,0,0,.04);
+  /* ── Типографика ── */
+  --head:'Unbounded',system-ui,sans-serif;
+  --body:'Golos Text',system-ui,sans-serif;
+  --fs-xl:22px;--fs-lg:17px;--fs-md:15px;--fs-sm:13px;--fs-xs:11px;
+  --lh:1.5;
+  /* ── Анимации ── */
+  --ease:.18s cubic-bezier(.4,0,.2,1);
+  /* ── Раскладка ── */
+  --panel-w:320px;--sheet-peek:88px;--sheet-full:82vh;
+}
+
+/* ── DARK THEME ──────────────────────────────── */
+html.dark{
+  --bg:#18181B;--panel:#1E1E22;--border:#3A3A40;
+  --t1:#F5F5F7;--t2:#8E8E93;--t3:#48484A;
+  --sh:0 1px 3px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.35);
+  --sh-up:0 -1px 3px rgba(0,0,0,.3),0 -4px 12px rgba(0,0,0,.25);
+  --ok:#30D158;--info:#4E90FF;
+}
+html.dark .sd{background:#252525;border-color:var(--border)}
+html.dark .pop-time{background:#333}
+html.dark .stop-hover-card{background:rgba(37,37,37,.97);border-color:#444;color:#F0F0F0}
+html.dark .stop-hover-card-title{color:#F0F0F0}
+html.dark .stop-pin-dot{background:#252525;border-color:var(--acc)}
+html.dark .bus-pin-bubble{background:rgba(26,26,26,.45)}
+html.dark input[type=range]{background:var(--border)}
+html.dark .ld-bar{background:var(--border)}
+html.dark .modal-head{background:#2D2D2D !important;border-color:#3A3A3A !important}
+html.dark .sm-dropzone{background:rgba(255,255,255,.02)}
+html.dark .sm-folder-info{background:rgba(255,255,255,.03)}
+html.dark .sm-url-input,.html.dark .rm-search{background:#1A1A1A}
+html.dark .pop-head{background:#2D2D2D}
+
+/* ── SEARCH BAR ────────────────────────────── */
+#search-bar{
+  position:absolute;top:64px;right:16px;
+  z-index:50;
+  width:44px;height:44px;
+  background:var(--panel);
+  border-radius:var(--r);
+  box-shadow:var(--sh);
+  display:flex;align-items:center;
+  overflow:hidden;
+  transition:width var(--ease),box-shadow var(--ease);
+  cursor:pointer;
+}
+#search-bar.search-open{
+  width:min(320px,calc(100vw - 76px));
+  cursor:default;
+  box-shadow:0 4px 24px rgba(0,0,0,.14);
+}
+#search-input{
+  flex:1;border:none;outline:none;
+  padding:0 10px;
+  font-family:var(--body);font-size:var(--fs-sm);color:var(--t1);
+  background:transparent;
+  width:0;opacity:0;
+  transition:opacity .15s .08s;
+  pointer-events:none;
+  min-width:0;
+}
+#search-bar.search-open #search-input{
+  width:auto;opacity:1;pointer-events:auto;
+}
+#search-input::placeholder{color:var(--t3)}
+#search-icon{
+  width:40px;height:40px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--t2);
+}
+#search-clear{
+  width:28px;height:28px;flex-shrink:0;margin-right:6px;
+  border:none;background:var(--border);border-radius:50%;
+  cursor:pointer;color:var(--t2);
+  display:none;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+#search-clear.visible{display:flex}
+
+/* ── FLOATING BUTTONS ────────────────────────── */
+#theme-toggle,#feed-btn,#locate-btn,#planner-btn,#compass-btn{
+  position:absolute;z-index:50;
+  width:44px;height:44px;
+  background:var(--panel);
+  border:none;border-radius:var(--r);
+  box-shadow:var(--sh);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:17px;
+  transition:background var(--ease),box-shadow var(--ease),transform var(--ease);
+  color:var(--t2);
+}
+#theme-toggle:focus-visible,#feed-btn:focus-visible,#locate-btn:focus-visible,
+#planner-btn:focus-visible,#compass-btn:focus-visible{
+  outline:2px solid var(--acc);outline-offset:2px;
+}
+#compass-btn{top:16px;right:16px;bottom:auto;font-size:13px;font-weight:800}
+/* search-bar занимает top:64px */
+#planner-btn{top:112px;right:16px;bottom:auto}
+#theme-toggle{bottom:80px;right:16px;top:auto}
+#feed-btn{bottom:128px;right:16px;top:auto}
+#locate-btn{bottom:32px;right:16px;top:auto}
+#planner-btn.is-active{background:var(--acc);color:#fff}
+
+/* panel close button */
+.panel-close-btn{
+  position:absolute;top:10px;right:10px;
+  width:28px;height:28px;border:none;background:var(--bg);
+  border-radius:50%;cursor:pointer;color:var(--t2);
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s;z-index:2;
+}
+.panel-close-btn:hover{background:var(--border)}
+.sheet-handle{position:relative}
+.sheet-close-btn{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  width:28px;height:28px;border:none;background:var(--bg);
+  border-radius:50%;cursor:pointer;color:var(--t2);
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s;
+}
+.sheet-close-btn:hover{background:var(--border)}
+#compass-btn.is-active{color:var(--acc)}
+#theme-toggle:hover,#feed-btn:hover,#locate-btn:hover,#planner-btn:hover,#compass-btn:hover,#search-bar:hover:not(.search-open){background:var(--bg);box-shadow:0 4px 16px rgba(0,0,0,.18);transform:translateY(-1px)}
+#theme-toggle:active,#feed-btn:active,#locate-btn:active,#planner-btn:active,#compass-btn:active{transform:scale(.94);box-shadow:var(--sh)}
+.compass-face{position:relative;width:22px;height:22px;border-radius:50%;border:1.6px solid currentColor;display:flex;align-items:center;justify-content:center;line-height:1}
+#compass-needle{display:block;transform-origin:center;transition:transform .18s ease}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;font-family:var(--body);font-size:var(--fs-md);line-height:var(--lh);background:var(--bg);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+#canvas{position:fixed;inset:0;width:100vw;height:100vh}
+
+/* shared components */
+.route-badge-wrap{display:inline-flex;align-items:center;gap:6px;background:var(--acc);color:#fff;padding:4px 12px 4px 9px;border-radius:6px;font-family:var(--head);font-size:11px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
+.route-name-txt{font-family:var(--head);font-size:13px;font-weight:600;color:var(--t1);line-height:1.3}
+.route-meta-txt{font-size:11px;color:var(--t3)}
+.sl{list-style:none}
+.si{display:flex;align-items:flex-start;gap:10px;padding:4px 0;position:relative}
+.si:not(:last-child)::after{content:'';position:absolute;left:9.5px;top:23px;width:2px;height:calc(100% - 3px);background:var(--border);z-index:0}
+.sd{width:21px;height:21px;flex-shrink:0;border-radius:50%;background:#fff;border:2.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--t3);position:relative;z-index:1;transition:all .25s}
+.sd.v{background:var(--acc);border-color:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(232,69,37,.38)}
+.sd.n{border-color:var(--acc);color:var(--acc);animation:pd 1.5s ease-in-out infinite}
+@keyframes pd{0%{box-shadow:0 0 0 0 rgba(232,69,37,.4)}70%{box-shadow:0 0 0 5px rgba(232,69,37,0)}100%{box-shadow:0 0 0 0 rgba(232,69,37,0)}}
+.si-info{padding-top:1px;cursor:pointer}
+.si-name{font-size:12px;color:var(--t1);font-weight:500;line-height:1.3;transition:color .15s}
+.si-name:hover{color:var(--acc)}
+.si-sub{font-size:10px;color:var(--t3);margin-top:1px}
+.dv{height:1px;background:var(--border);margin:12px 0}
+.prog-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.prog-head span:first-child{font-size:11px;color:var(--t2);font-weight:500}
+.prog-head span:last-child{font-size:11px;color:var(--acc);font-weight:700;font-family:var(--head)}
+.prog-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:2px;transition:width .05s linear}
+.ctrl{margin-top:12px;display:flex;align-items:center;gap:9px}
+.btn-pp{width:30px;height:30px;flex-shrink:0;background:var(--acc);border:none;border-radius:50%;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(232,69,37,.38);transition:transform .15s}
+.btn-pp:hover{transform:scale(1.1)}
+.spw{flex:1;display:flex;align-items:center;gap:6px}
+.spw>span{font-size:10.5px;color:var(--t3)}
+.spw>span:last-child{color:var(--acc);font-weight:700;min-width:26px;text-align:right;font-family:var(--head);font-size:10px}
+input[type=range]{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--border);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--acc);cursor:pointer;box-shadow:0 2px 5px rgba(232,69,37,.38)}
+.planner-card{margin-top:14px;padding:14px 14px 12px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(244,245,248,.94));border:1px solid rgba(17,24,39,.08);box-shadow:0 10px 28px rgba(17,24,39,.08);display:flex;flex-direction:column;gap:12px}
+.planner-card.is-empty{opacity:.96}
+.planner-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.planner-title{font-size:13px;font-weight:800;color:var(--t1);line-height:1.3}
+.planner-subtitle{font-size:11px;color:var(--t2);margin-top:3px;line-height:1.45}
+.planner-pill{padding:5px 10px;border-radius:999px;background:rgba(37,99,235,.08);color:#2563eb;font-size:10px;font-weight:700;white-space:nowrap}
+.planner-pill.is-transfer{background:rgba(232,69,37,.1);color:var(--acc)}
+.planner-points{display:flex;flex-direction:column;gap:8px}
+.planner-point{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.72);cursor:pointer;transition:border-color .16s ease,transform .16s ease,box-shadow .16s ease}
+.planner-point:hover{transform:translateY(-1px);border-color:rgba(37,99,235,.28);box-shadow:0 6px 18px rgba(15,23,42,.06)}
+.planner-point.is-pending{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.planner-point-badge{width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0}
+.planner-point-badge.from{background:#0ea5e9}
+.planner-point-badge.to{background:#ef4444}
+.planner-point-copy{min-width:0;flex:1}
+.planner-point-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em}
+.planner-point-value{font-size:12px;color:var(--t1);font-weight:700;line-height:1.35;margin-top:2px}
+.planner-point-meta{font-size:10px;color:var(--t2);line-height:1.45;margin-top:2px}
+.planner-actions{display:flex;flex-wrap:wrap;gap:8px}
+.planner-action,.planner-build-btn{border:none;border-radius:999px;padding:9px 12px;font-size:11px;font-weight:700;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
+.planner-action{background:rgba(17,24,39,.06);color:var(--t1)}
+.planner-action:hover,.planner-build-btn:hover{transform:translateY(-1px)}
+.planner-build-btn{background:linear-gradient(135deg,var(--acc),#ff7a59);color:#fff;box-shadow:0 8px 20px rgba(232,69,37,.2)}
+.planner-build-btn[disabled]{cursor:not-allowed;opacity:.5;transform:none;box-shadow:none}
+.planner-hint{font-size:10.5px;color:var(--t2);line-height:1.5}
+.planner-status{padding:10px 12px;border-radius:12px;background:rgba(37,99,235,.06);font-size:11px;color:#1d4ed8;line-height:1.45}
+.planner-status.is-error{background:rgba(220,38,38,.08);color:#b91c1c}
+.planner-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.planner-summary-item{padding:10px;border-radius:12px;background:rgba(17,24,39,.05)}
+.planner-summary-label{font-size:9.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em}
+.planner-summary-value{font-size:13px;color:var(--t1);font-weight:800;line-height:1.3;margin-top:4px}
+.planner-legs{display:flex;flex-direction:column;gap:8px}
+.planner-leg{padding:11px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.72)}
+.planner-leg-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.planner-leg-mode{font-size:11px;font-weight:800;color:var(--t1)}
+.planner-leg-time{font-size:11px;font-weight:700;color:var(--t2);white-space:nowrap}
+.planner-leg-route{display:inline-flex;align-items:center;gap:6px;margin-top:7px;padding:4px 9px;border-radius:999px;color:#fff;font-size:11px;font-weight:800}
+.planner-leg-copy{font-size:10.5px;color:var(--t2);line-height:1.55;margin-top:7px}
+.planner-leg-copy strong{color:var(--t1)}
+.planner-empty{font-size:11px;color:var(--t2);line-height:1.55;padding:10px 0 2px}
+html.dark .planner-card{background:linear-gradient(180deg,rgba(40,38,52,.94),rgba(26,24,35,.92));border-color:rgba(255,255,255,.08);box-shadow:0 14px 36px rgba(0,0,0,.3)}
+html.dark .planner-point,html.dark .planner-leg{background:rgba(255,255,255,.03)}
+html.dark .planner-summary-item{background:rgba(255,255,255,.05)}
+html.dark .planner-action{background:rgba(255,255,255,.08);color:var(--t1)}
+html.dark .planner-pill{background:rgba(96,165,250,.16);color:#93c5fd}
+html.dark .planner-pill.is-transfer{background:rgba(248,113,113,.14);color:#fca5a5}
+.rt-bar{margin-top:10px;padding:8px 10px;border-radius:10px;background:rgba(42,157,108,.08);border:1px solid rgba(42,157,108,.2);font-size:10.5px;color:var(--ok);display:none;align-items:center;gap:6px}
+.rt-bar.show{display:flex}
+.compact-hide{display:none !important}
+.route-params{display:flex;flex-direction:column;gap:12px}.param-row{padding:10px 0;border-bottom:1px solid var(--border)}.param-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}.param-value{font-size:14px;color:var(--t1);font-weight:600;line-height:1.35}.param-sub{font-size:11px;color:var(--t2);margin-top:2px}.panel-tabs{display:flex;gap:0;margin-bottom:12px;border-bottom:2px solid var(--border)}.panel-tab{padding:10px 16px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:transparent;color:var(--t2);font-weight:600;font-size:13px;cursor:pointer;transition:color .15s,border-color .15s}.panel-tab.active{color:var(--acc);border-bottom-color:var(--acc)}.panel-view{display:none}.panel-view.active{display:block}.route-list-item{display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:8px;border-bottom:none;cursor:pointer;transition:background .15s}.route-list-item:hover{background:var(--bg)}.route-list-pill{min-width:36px;height:24px;padding:0 8px;border-radius:6px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}.route-list-main{flex:1;min-width:0}.route-list-name{font-size:13px;font-weight:600;color:var(--t1);line-height:1.3}.route-list-sub{font-size:11px;color:var(--t3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.route-list-empty{font-size:12px;color:var(--t3);padding:6px 0 4px}.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:170px;padding:22px 16px;text-align:center;color:var(--t2);animation:emptyFade .24s ease-out}.empty-state__icon{width:58px;height:58px;border-radius:18px;border:1px solid var(--border);background:linear-gradient(180deg,#fff,#f5f1ea);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px rgba(0,0,0,.08);animation:emptyFloat 2.2s ease-in-out infinite}.empty-state__icon svg{width:34px;height:34px;stroke:#111;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.empty-state__title{font-family:var(--head);font-size:13px;color:var(--t1)}.empty-state__text{font-size:11.5px;line-height:1.45;max-width:230px}.empty-state__text small{display:block;margin-top:4px;color:var(--t3)}@keyframes emptyFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes emptyFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}.#chip{display:none!important}
+.info-slides{display:flex;flex-direction:column;gap:10px}
+.info-slides-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.info-slides-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.12em;font-weight:700}
+.info-slides-nav{display:flex;align-items:center;gap:6px}
+.info-slide-arrow{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .16s ease}
+.info-slide-arrow:hover{border-color:var(--acc);color:var(--acc);transform:translateY(-1px)}
+.info-slides-window{overflow:hidden}
+.info-slides-track{display:flex;transition:transform .28s ease}
+.info-slide{min-width:100%;display:flex;flex-direction:column;gap:12px}
+.info-slide-card{padding:15px;border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,.84),rgba(255,255,255,.52));border:1px solid rgba(17,24,39,.08);box-shadow:0 12px 28px rgba(0,0,0,.08)}
+.info-slide-top{display:flex;align-items:flex-start;gap:12px}
+.info-slide-badge{min-width:44px;height:30px;padding:0 10px;border-radius:999px;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;box-shadow:0 8px 16px rgba(0,0,0,.14)}
+.info-slide-main{flex:1;min-width:0}
+.info-slide-kicker{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.12em;font-weight:700}
+.info-slide-title{font-size:15px;font-weight:800;color:var(--t1);line-height:1.25;margin-top:4px}
+.info-slide-meta{font-size:11px;color:var(--t2);margin-top:4px;line-height:1.45}
+.info-slide-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.info-slide-row{padding:10px 11px;border-radius:14px;background:rgba(17,24,39,.04);border:1px solid rgba(17,24,39,.05)}
+.info-slide-row-label{font-size:9.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.info-slide-row-value{font-size:12.5px;color:var(--t1);font-weight:700;line-height:1.35}
+.info-slide-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.info-slide-chip{padding:5px 10px;border-radius:999px;background:rgba(232,69,37,.08);border:1px solid rgba(232,69,37,.16);font-size:10.5px;color:var(--t1);font-weight:700;line-height:1}
+.info-slide-dots{display:flex;justify-content:center;gap:6px}
+.info-slide-dot{width:8px;height:8px;border-radius:50%;border:none;background:rgba(17,24,39,.14);cursor:pointer;padding:0;transition:all .16s ease}
+.info-slide-dot.active{width:24px;border-radius:999px;background:var(--acc)}
+.info-slides-empty{padding:14px;border-radius:18px;border:1px dashed var(--border);font-size:12px;color:var(--t3);text-align:center}
+.route-card-progress{margin-top:12px}
+.route-card-progress-top{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:var(--t2);margin-bottom:6px}
+.route-card-track{height:8px;border-radius:999px;background:rgba(17,24,39,.08);overflow:hidden}
+.route-card-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--acc),#ffb347)}
+.route-timeline{margin-top:12px;display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto;padding-right:2px}
+.route-timeline-item{display:flex;align-items:flex-start;gap:10px}
+.route-timeline-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);background:#fff;flex-shrink:0;margin-top:4px}
+.route-timeline-dot.is-done{background:var(--acc);border-color:var(--acc)}
+.route-timeline-dot.is-next{border-color:var(--acc);box-shadow:0 0 0 4px rgba(232,69,37,.12)}
+.route-timeline-copy{min-width:0;flex:1}
+.route-timeline-title{font-size:12.5px;color:var(--t1);font-weight:700;line-height:1.35}
+.route-timeline-sub{font-size:10.5px;color:var(--t3);margin-top:2px}
+.info-board{margin-top:12px;display:flex;flex-direction:column;gap:7px}
+.info-board-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border-radius:12px;background:rgba(17,24,39,.04);border:1px solid rgba(17,24,39,.05)}
+.info-board-route{font-size:11px;font-weight:800;color:var(--t1)}
+.info-board-time{font-size:11px;color:var(--t2)}
+.info-muted{font-size:11px;color:var(--t3);line-height:1.45}
+.info-slide-body{margin-top:12px;display:flex;flex-direction:column;gap:12px}
+.info-slide-section{padding:12px;border-radius:14px;background:rgba(17,24,39,.035);border:1px solid rgba(17,24,39,.05)}
+.info-slide-section-title{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;font-weight:800;margin-bottom:8px}
+.info-link-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.info-link-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border-radius:999px;border:1px solid rgba(232,69,37,.16);background:rgba(232,69,37,.08);color:var(--t1);font-size:11px;font-weight:800;line-height:1;cursor:pointer;transition:transform .16s ease,background .16s ease,border-color .16s ease}
+.info-link-btn:hover{transform:translateY(-1px);background:rgba(232,69,37,.12);border-color:rgba(232,69,37,.24)}
+.info-link-btn.is-disabled{opacity:.48;cursor:default;transform:none}
+.info-link-icon{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.7);font-size:11px;flex-shrink:0}
+html.dark .info-slide-card{background:linear-gradient(180deg,rgba(37,36,49,.92),rgba(24,23,34,.88));border-color:rgba(255,255,255,.06)}
+html.dark .info-slide-row{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.05)}
+html.dark .info-slide-dot{background:rgba(255,255,255,.18)}
+html.dark .route-card-track{background:rgba(255,255,255,.08)}
+html.dark .route-timeline-dot{background:#1c1b24}
+html.dark .info-board-row{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.05)}
+html.dark .info-slide-section{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.05)}
+html.dark .info-link-icon{background:rgba(255,255,255,.12)}
+.rt-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex-shrink:0;animation:pd2 2s ease-in-out infinite}
+@keyframes pd2{0%{box-shadow:0 0 0 0 rgba(42,157,108,.5)}70%{box-shadow:0 0 0 5px rgba(42,157,108,0)}100%{box-shadow:0 0 0 0 rgba(42,157,108,0)}}
+.route-list-item{cursor:pointer;border-radius:16px;transition:background .18s ease,transform .18s ease,box-shadow .18s ease}
+.route-list-item:hover{background:rgba(17,24,39,.04);transform:translateY(-1px)}
+.route-list-item.is-selected{background:rgba(232,69,37,.08);box-shadow:inset 0 0 0 1px rgba(232,69,37,.22)}
+.route-list-indicator{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--t3);flex-shrink:0;transition:all .18s ease}
+.route-list-item.is-selected .route-list-indicator{background:var(--acc);border-color:var(--acc);color:#fff}
+.route-selection-card{padding:14px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(255,255,255,.38));border:1px solid rgba(232,69,37,.16);box-shadow:0 10px 28px rgba(0,0,0,.08);animation:routeCardIn .24s ease-out}
+.route-selection-head{display:flex;align-items:flex-start;gap:10px}
+.route-selection-badge{min-width:42px;height:28px;padding:0 10px;border-radius:999px;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;box-shadow:0 6px 16px rgba(0,0,0,.14)}
+.route-selection-main{min-width:0;flex:1}
+.route-selection-title{font-size:13px;font-weight:700;color:var(--t1);line-height:1.3}
+.route-selection-meta{font-size:11px;color:var(--t2);margin-top:3px}
+.route-selection-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.route-selection-chip{padding:5px 10px;border-radius:999px;border:1px solid currentColor;background:transparent;font-size:10.5px;font-weight:700;line-height:1}
+.route-selection-chip--muted{color:var(--t3);border-color:var(--border)}
+@keyframes routeCardIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+html.dark .route-list-item:hover{background:rgba(255,255,255,.04)}
+html.dark .route-selection-card{background:linear-gradient(180deg,rgba(40,38,52,.92),rgba(26,24,35,.88));border-color:rgba(255,255,255,.08)}
+
+/* desktop panel */
+#desk-panel{position:absolute;top:16px;left:16px;width:var(--panel-w);max-height:calc(100vh - 32px);background:var(--panel);border-radius:var(--r);border:none;box-shadow:var(--sh);display:flex;flex-direction:column;overflow:hidden}
+.ph{padding:16px 16px 0;flex-shrink:0;background:var(--panel);border-bottom:1px solid var(--border)}
+.ph .route-badge-wrap{margin-bottom:10px}
+.ph .route-name-txt{margin-bottom:3px}
+.ph .route-meta-txt{margin-bottom:14px}
+.pb{padding:12px 16px;overflow-y:auto;flex:1}
+.pb::-webkit-scrollbar{width:4px}
+.pb::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+html.dark .ph{background:var(--panel);border-color:var(--border)}
+
+/* mobile bottom sheet */
+#mob-sheet{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--panel);border-radius:16px 16px 0 0;box-shadow:0 -2px 12px rgba(0,0,0,.12);display:flex;flex-direction:column;height:var(--sheet-peek);transition:height .35s cubic-bezier(.32,.72,0,1);touch-action:none;will-change:height}
+#mob-sheet.expanded{height:var(--sheet-full)}
+.sheet-handle{display:flex;justify-content:center;align-items:center;padding:10px 0 6px;flex-shrink:0;cursor:grab;touch-action:none}
+.sheet-handle::before{content:'';width:32px;height:3px;background:var(--border);border-radius:2px}
+.sheet-peek-row{padding:0 16px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;cursor:pointer}
+.sheet-peek-row .route-badge-wrap{flex-shrink:0}
+.peek-info{flex:1;min-width:0}
+.peek-name{font-size:14px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--head)}
+.peek-meta{font-size:11px;color:var(--t3);margin-top:2px}
+.peek-chevron{font-size:18px;color:var(--t3);flex-shrink:0;transition:transform .3s;line-height:1;padding-bottom:2px}
+#mob-sheet.expanded .peek-chevron{transform:rotate(180deg)}
+.sheet-body{flex:1;overflow-y:auto;padding:4px 16px 24px;overscroll-behavior:contain;opacity:0;transition:opacity .2s .05s;pointer-events:none}
+#mob-sheet.expanded .sheet-body{opacity:1;pointer-events:auto}
+.sheet-body::-webkit-scrollbar{width:3px}
+.sheet-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* responsive – panels hidden by default, shown via .panel-open */
+@media(min-width:640px){
+  #desk-panel{display:none}
+  #desk-panel.panel-open{display:flex}
+  #mob-sheet{display:none}
+}
+@media(max-width:639px){
+  #desk-panel{display:none}
+  #mob-sheet{display:flex;height:0;overflow:hidden}
+  #mob-sheet.panel-open{height:var(--sheet-peek)}
+  #mob-sheet.panel-open.expanded{height:var(--sheet-full)}
+  /* мобильные FAB: сдвигаем вправо к краю */
+  #compass-btn,#search-bar,#planner-btn{right:12px}
+  #theme-toggle,#feed-btn,#locate-btn{right:12px}
+  /* сплэш: кнопки языка чуть меньше на узком экране */
+  .splash-lang{padding:10px 6px}
+  .splash-lang-flag{font-size:24px}
+  .splash-lang-name{font-size:11px}
+  .splash-lang-native{font-size:9px}
+  .splash-card{padding:20px 16px calc(12px + env(safe-area-inset-bottom))}
+  /* bottom sheet не перекрывает FAB кнопки снизу */
+  #mob-sheet.panel-open{padding-bottom:env(safe-area-inset-bottom)}
+}
+
+/* bus pin */
+.bus-pin{position:absolute;pointer-events:none;user-select:none;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;z-index:12}
+.bus-marker{position:relative;display:flex;flex-direction:column;align-items:center}
+.bus-marker-svg{display:none}
+.bus-marker-pill{min-width:32px;max-width:72px;padding:5px 10px;border-radius:8px;background:var(--pin-color,#FC3F1D);border:2.5px solid #fff;color:#fff;font-family:var(--body);font-size:11px;font-weight:700;line-height:1;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.22)}
+
+/* stop pin */
+.stop-pin{position:absolute;pointer-events:auto;user-select:none;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;transform:translate(0,-100%)}
+.stop-hover-card{display:none;position:absolute;left:22px;top:-14px;min-width:180px;max-width:280px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 12px;box-shadow:0 4px 16px rgba(0,0,0,.14);z-index:2}
+.stop-pin:hover .stop-hover-card,.stop-pin:focus-within .stop-hover-card,.stop-pin.is-active .stop-hover-card{display:block}
+.stop-hover-card-title{font-size:12px;line-height:1.35;font-weight:600;color:var(--t1);word-break:break-word}
+.stop-pin-dot{
+  width:var(--stop-dot-size,14px);height:var(--stop-dot-size,14px);border-radius:50%;
+  background:#fff;border:var(--stop-dot-border,2.5px) solid var(--acc);
+  box-shadow:0 1px 4px rgba(0,0,0,.2);margin-left:8px;flex-shrink:0;position:relative;z-index:1;
+  transition:width .16s ease,height .16s ease,border-width .16s ease,margin-left .16s ease,box-shadow .16s ease,transform .16s ease;
+}
+.stop-pin:hover .stop-pin-dot,.stop-pin:focus-within .stop-pin-dot,.stop-pin.is-active .stop-pin-dot{
+  width:var(--stop-dot-size-active,18px);height:var(--stop-dot-size-active,18px);
+  border-width:var(--stop-dot-border-active,3.5px);margin-left:calc(var(--stop-dot-margin-left,8px) - 2px);
+  box-shadow:0 2px 8px rgba(252,63,29,.3);transform:translate(-2px,-2px);
+}
+
+/* labels container */
+#labels-container{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:10}
+
+/* popup */
+#popup{position:absolute;display:none;z-index:300;width:240px;background:var(--panel);border-radius:12px;border:none;box-shadow:0 4px 20px rgba(0,0,0,.16);overflow:hidden}
+.pop-head{padding:12px 14px 10px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.pop-stop-name{font-size:13px;font-weight:600;color:var(--t1);line-height:1.3;font-family:var(--head)}
+.pop-close{width:22px;height:22px;flex-shrink:0;border:none;background:var(--bg);border-radius:50%;cursor:pointer;font-size:13px;color:var(--t2);display:flex;align-items:center;justify-content:center;transition:background .15s}
+.pop-close:hover{background:var(--border)}
+.pop-body{padding:10px 14px 12px}
+.pop-route-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 8px;border-radius:6px;font-family:var(--head);font-size:11px;font-weight:700;margin-bottom:10px;background:var(--acc);color:#fff}
+.pop-times-label{font-size:10px;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+.pop-times{display:flex;flex-wrap:wrap;gap:4px}
+.pop-time{padding:4px 9px;border-radius:6px;background:var(--bg);border:1px solid var(--border);font-size:11px;color:var(--t1);font-weight:500}
+.pop-time.next{background:rgba(252,63,29,.07);border-color:rgba(252,63,29,.25);color:var(--acc)}
+.pop-no-times{font-size:11px;color:var(--t3)}
+.pop-code{font-size:9.5px;color:var(--t3);margin-top:8px}
+#veh-popup{position:absolute;display:none;z-index:300;width:220px;background:var(--panel);border-radius:12px;border:none;box-shadow:0 4px 20px rgba(0,0,0,.16);overflow:hidden}
+html.dark #veh-popup .pop-head{background:#2D2D2D}
+.pop-date-row{display:flex;gap:5px;margin-bottom:8px;margin-top:2px}
+.pop-date-row input{flex:1;min-width:0;border:1px solid var(--border);border-radius:6px;padding:3px 5px;font-size:11px;color:var(--t1);background:var(--bg);font-family:var(--body);outline:none;cursor:pointer}
+.pop-date-row input:focus{border-color:var(--acc)}
+html.dark .pop-date-row input{background:#333;color:var(--t1);border-color:var(--border)}
+.pop-no-service{font-size:11px;color:var(--t3);font-style:italic}
+
+/* chip */
+#chip{position:absolute;top:72px;left:50%;transform:translateX(-50%);background:var(--panel);padding:8px 14px;border-radius:8px;font-family:var(--body);font-size:12px;font-weight:500;color:var(--t1);box-shadow:var(--sh);border:none;display:flex;align-items:center;gap:8px;pointer-events:none;transition:background .3s,color .3s;white-space:nowrap}
+.chip-dot{width:8px;height:8px;border-radius:50%;background:var(--acc);animation:pd 1.8s ease-in-out infinite}
+
+/* loading */
+#loading{position:fixed;inset:0;z-index:999;background:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.ld-bus{font-size:48px}
+.ld-text{font-family:var(--body);font-size:14px;color:var(--t2)}
+.ld-bar{width:200px;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.ld-fill{height:100%;width:0%;background:var(--acc);border-radius:2px;transition:width .4s ease}
+
+/* ══ МОБИЛЬНЫЕ SAFE AREAS ══════════════════════════════════════ */
+body{padding-bottom:env(safe-area-inset-bottom);padding-top:env(safe-area-inset-top)}
+#deck-canvas,#map-labels{padding-bottom:0}
+#compass-btn{top:calc(12px + env(safe-area-inset-top))}
+#search-bar{top:calc(60px + env(safe-area-inset-top))}
+#planner-btn{top:calc(108px + env(safe-area-inset-top))}
+#theme-toggle{bottom:calc(80px + env(safe-area-inset-bottom))}
+#feed-btn{bottom:calc(128px + env(safe-area-inset-bottom))}
+#locate-btn{bottom:calc(32px + env(safe-area-inset-bottom))}
+
+/* ══ СПЛЭШ — ВЫБОР ЯЗЫКА И ЗАГРУЗКА ═══════════════════════════ */
+#splash{
+  position:fixed;inset:0;z-index:4000;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  padding:0 0 env(safe-area-inset-bottom);
+  overflow:hidden;
+  /* Картинка + градиент снизу в одном background — никаких лишних слоёв */
+  background:
+    linear-gradient(to bottom,
+      rgba(0,0,0,0) 0%,
+      rgba(0,0,0,.08) 45%,
+      rgba(0,0,0,.55) 78%,
+      rgba(0,0,0,.72) 100%
+    ),
+    url('./splash-bg.png') center/cover no-repeat,
+    #1a3a6b;
+}
+.splash-bg{display:none}
+#splash::before{content:none}
+#splash::after{content:none}
+/* Карточка с контентом снизу */
+.splash-card{
+  position:relative;z-index:2;
+  width:100%;
+  background:rgba(255,255,255,.93);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-radius:28px 28px 0 0;
+  padding:28px 20px calc(16px + env(safe-area-inset-bottom));
+  box-shadow:0 -8px 40px rgba(0,0,0,.25);
+  display:flex;flex-direction:column;align-items:center;
+}
+/* Заголовок на фоне пейзажа */
+.splash-hero{
+  position:absolute;top:0;left:0;right:0;
+  display:flex;flex-direction:column;align-items:center;
+  padding-top:calc(22vh + env(safe-area-inset-top));
+  z-index:2;pointer-events:none;
+}
+.splash-logo{display:none}
+.splash-title{
+  font-family:var(--head);font-size:clamp(26px,8vw,42px);font-weight:800;
+  color:#fff;text-align:center;
+  letter-spacing:-.02em;padding:0 20px;
+  text-shadow:0 2px 20px rgba(0,0,0,.8),0 1px 6px rgba(0,0,0,.6);
+}
+.splash-sub{
+  font-size:13px;color:rgba(255,255,255,.9);text-align:center;
+  margin-top:8px;line-height:1.5;padding:0 16px;
+  text-shadow:0 1px 6px rgba(0,0,0,.6);
+}
+.splash-langs{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;
+  width:100%;margin-bottom:16px;
+}
+.splash-lang{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:14px 10px;border-radius:16px;
+  border:2px solid #E5E5EA;
+  background:#F2F2F7;
+  cursor:pointer;transition:all var(--ease);font-family:var(--head);
+}
+.splash-lang:hover{border-color:var(--acc);background:#fff}
+.splash-lang:active{transform:scale(.96)}
+.splash-lang.selected{border-color:var(--acc);background:rgba(252,63,29,.06)}
+.splash-lang-flag{font-size:28px;line-height:1}
+.splash-lang-name{font-size:12px;font-weight:700;color:#1C1C1E}
+.splash-lang-native{font-size:10px;color:#8E8E93}
+.splash-start{
+  width:100%;padding:17px;border-radius:14px;border:none;
+  background:linear-gradient(135deg,#FC3F1D 0%,#FF6B4A 100%);
+  color:#fff;font-family:var(--head);font-size:15px;font-weight:700;
+  cursor:pointer;letter-spacing:.01em;
+  box-shadow:0 6px 24px rgba(252,63,29,.38);
+  transition:transform var(--ease),opacity var(--ease),box-shadow var(--ease);
+}
+.splash-start:hover{transform:translateY(-1px);box-shadow:0 10px 32px rgba(252,63,29,.5)}
+.splash-start:active{transform:scale(.98)}
+.splash-start:disabled{opacity:.4;cursor:default;box-shadow:none;transform:none}
+/* Экран загрузки внутри сплэша */
+#splash-loading{display:none;flex-direction:column;align-items:center;gap:14px;width:100%}
+#splash-loading.show{display:flex}
+.splash-langs.hide,.splash-start.hide{display:none}
+.splash-ld-icon{font-size:40px;animation:splBounce 1s ease-in-out infinite alternate}
+@keyframes splBounce{from{transform:translateY(0)}to{transform:translateY(-8px)}}
+.splash-ld-text{font-size:14px;color:var(--t2);text-align:center}
+.splash-ld-bar{width:100%;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.splash-ld-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--acc),#ff6b4a);border-radius:2px;transition:width .4s ease}
+.splash-ld-err{font-size:12px;color:var(--acc);text-align:center;line-height:1.5;display:none}
+.splash-ld-err.show{display:block}
+.splash-retry{
+  margin-top:8px;padding:10px 24px;border-radius:10px;border:none;
+  background:var(--acc);color:#fff;font-family:var(--head);font-size:12px;font-weight:700;
+  cursor:pointer;display:none;
+}
+.splash-retry.show{display:block}
+/* .splash-mountains удалён — используется фото-фон */
+
+
+/* ══ ROUTE MODAL ═══════════════════════════════════════════════ */
+#route-modal .modal-card{
+  max-width:500px;max-height:88vh;
+  display:flex;flex-direction:column;
+}
+.rm-search-wrap{
+  padding:13px 16px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.rm-search{
+  width:100%;padding:9px 13px;border-radius:10px;
+  border:1.5px solid var(--border);background:var(--bg);
+  font-family:var(--body);font-size:13px;color:var(--t1);
+  outline:none;transition:border-color .2s;
+}
+.rm-search:focus{border-color:var(--acc)}
+.rm-count{font-size:10.5px;color:var(--t3);margin-top:7px;padding:0 2px}
+.rm-list{
+  flex:1;overflow-y:auto;padding:8px 10px 12px;
+  display:flex;flex-direction:column;gap:3px;
+}
+.rm-list::-webkit-scrollbar{width:4px}
+.rm-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.rm-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:8px;cursor:pointer;
+  border:none;transition:background .13s;
+}
+.rm-item:hover{background:var(--bg)}
+.rm-badge{
+  flex-shrink:0;display:inline-flex;align-items:center;
+  padding:3px 9px;border-radius:6px;
+  font-family:var(--body);font-size:11px;font-weight:700;
+  color:#fff;white-space:nowrap;min-width:36px;justify-content:center;
+}
+.rm-info{flex:1;min-width:0}
+.rm-short{font-size:13px;font-weight:600;color:var(--t1)}
+.rm-long{font-size:11px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.rm-sep{font-size:10px;color:var(--t3);padding:6px 12px 2px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.rm-arrow{font-size:14px;color:var(--t3);flex-shrink:0;line-height:1}
+.rm-empty{padding:24px;text-align:center;color:var(--t3);font-size:12px}
+
+/* back-to-sources in route modal */
+.rm-footer{padding:10px 16px 14px;border-top:1px solid var(--border);display:flex;justify-content:center;flex-shrink:0}
+.rm-back{
+  font-size:11.5px;color:var(--t3);background:none;border:none;
+  cursor:pointer;display:flex;align-items:center;gap:5px;padding:6px 10px;
+  border-radius:8px;transition:color .15s;
+}
+.rm-back:hover{color:var(--acc)}
+
+
+/* splash */
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+<div id="labels-container"></div>
+<div id="bus-pin" class="bus-pin" style="display:none">
+  <div class="bus-marker" id="bus-marker">
+    <svg class="bus-marker-svg" viewBox="0 0 96 96" aria-hidden="true">
+      <defs>
+        <linearGradient id="busBodyGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ffcb45" />
+          <stop offset="100%" stop-color="#f2a900" />
+        </linearGradient>
+        <linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#dff4ff" stop-opacity="0.95" />
+          <stop offset="100%" stop-color="#8bb7d6" stop-opacity="0.95" />
+        </linearGradient>
+        <filter id="busShadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="rgba(0,0,0,.28)" />
+        </filter>
+      </defs>
+      <ellipse cx="48" cy="86" rx="22" ry="6" fill="rgba(0,0,0,.18)" />
+      <g filter="url(#busShadow)">
+        <rect x="16" y="18" width="64" height="48" rx="18" fill="url(#busBodyGrad)" stroke="#1b2331" stroke-width="4" />
+        <path d="M24 34c0-6 4-10 10-10h28c6 0 10 4 10 10v12H24V34z" fill="url(#glassGrad)" stroke="#1b2331" stroke-width="3" stroke-linejoin="round"/>
+        <line x1="44" y1="26" x2="44" y2="46" stroke="#1b2331" stroke-width="3" />
+        <line x1="60" y1="26" x2="60" y2="46" stroke="#1b2331" stroke-width="3" />
+        <rect x="22" y="48" width="52" height="8" rx="4" fill="#ffde7a" opacity=".85"/>
+        <rect x="69" y="31" width="7" height="23" rx="3" fill="#f7c42d" stroke="#1b2331" stroke-width="2.5" />
+        <circle cx="31" cy="68" r="9" fill="#141b27" stroke="#f5f7fa" stroke-width="3"/>
+        <circle cx="65" cy="68" r="9" fill="#141b27" stroke="#f5f7fa" stroke-width="3"/>
+        <circle cx="31" cy="68" r="3.5" fill="#4c5567"/>
+        <circle cx="65" cy="68" r="3.5" fill="#4c5567"/>
+        <circle cx="20" cy="52" r="3.5" fill="#fff8cc" opacity=".95"/>
+        <circle cx="76" cy="52" r="3.5" fill="#ff5d4d" opacity=".8"/>
+      </g>
+    </svg>
+    <div class="bus-marker-pill" id="bus-pin-text">608</div>
+  </div>
+</div>
+
+<!-- SEARCH BAR -->
+<div id="search-bar" onclick="openSearch(event)">
+  <div id="search-icon">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+  </div>
+  <input id="search-input" type="text" placeholder="Маршрут или остановка…" oninput="onSearchInput(this.value)" autocomplete="off" spellcheck="false">
+  <button id="search-clear" onclick="closeSearch(event)" aria-label="Закрыть">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+</div>
+<div id="search-suggestions"></div>
+
+<!-- FLOATING BUTTONS -->
+<button id="locate-btn" title="Где я?" onclick="geolocateMe()">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+    <circle cx="12" cy="12" r="9" stroke-opacity=".3"/>
+  </svg>
+</button>
+<button id="feed-btn" title="Сменить язык" onclick="showSplash()" style="font-size:18px;line-height:1">🌐</button>
+<button id="theme-toggle" title="Тема" onclick="toggleTheme()">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="theme-icon">
+    <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+  </svg>
+</button>
+<button id="planner-btn" title="Планировщик" onclick="togglePlannerMode()">⇄</button>
+<button id="compass-btn" title="Компас" onclick="resetCompassOrientation()"><span class="compass-face"><span id="compass-needle">N</span></span></button>
+
+<!-- DESKTOP PANEL -->
+<div id="desk-panel">
+  <div class="ph" style="display:none"></div>
+  <div class="pb" style="padding-top:18px">
+  <button class="panel-close-btn" onclick="closePanel()" title="Закрыть">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+    <div class="route-params" id="d-route-params"></div>
+    <div id="d-planner-card"></div>
+    <div class="panel-tabs" id="d-panel-tabs">
+      <button class="panel-tab active" data-target="stops" onclick="setPanelMode('stops')" data-i18n="panel.stops">Остановки</button>
+      <button class="panel-tab" data-target="routes" onclick="setPanelMode('routes')" data-i18n="panel.routes">Маршруты</button>
+    </div>
+    <div class="panel-view active" id="d-stops-view"><div class="sl" id="d-slist"></div></div>
+    <div class="panel-view" id="d-routes-view"><div id="d-rlist"></div></div>
+  </div>
+</div>
+
+<!-- MOBILE BOTTOM SHEET -->
+<div id="mob-sheet">
+  <div class="sheet-handle" id="sheet-handle">
+    <button class="sheet-close-btn" onclick="closePanel()" title="Закрыть">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="sheet-peek-row" id="sheet-peek-row" style="display:none">
+    <div class="peek-info">
+      <div class="peek-name" id="m-rname">Загрузите GTFS фид</div>
+      <div class="peek-meta" id="m-rmeta">нажмите 📡</div>
+    </div>
+    <div class="peek-chevron">&#8963;</div>
+  </div>
+  <div class="sheet-body">
+    <div class="route-params" id="m-route-params"></div>
+    <div id="m-planner-card"></div>
+    <div class="panel-tabs" id="m-panel-tabs">
+      <button class="panel-tab active" data-target="stops" onclick="setPanelMode('stops')" data-i18n="panel.stops">Остановки</button>
+      <button class="panel-tab" data-target="routes" onclick="setPanelMode('routes')" data-i18n="panel.routes">Маршруты</button>
+    </div>
+    <div class="panel-view active" id="m-stops-view"><div class="sl" id="m-slist"></div></div>
+    <div class="panel-view" id="m-routes-view"><div id="m-rlist"></div></div>
+  </div>
+</div>
+
+<!-- POPUP -->
+<div id="popup">
+  <div class="pop-head">
+    <div class="pop-stop-name" id="pop-sname">Остановка</div>
+    <button class="pop-close" onclick="closePopup()">×</button>
+  </div>
+  <div class="pop-body">
+    <div class="pop-route-badge" id="pop-rbadge" style="cursor:pointer" onclick="showRouteFromPopup()" title="Все ТС на маршруте">&#128652; —</div>
+    <div class="pop-date-row">
+      <input type="date" id="pop-date" onchange="onPopDateChange()">
+      <input type="time" id="pop-time" onchange="onPopTimeChange()">
+    </div>
+    <div class="pop-times-label">Ближайшие рейсы</div>
+    <div class="pop-times" id="pop-times"></div>
+    <div class="pop-code" id="pop-code"></div>
+  </div>
+</div>
+
+
+
+<!-- VEHICLE POPUP -->
+<div id="veh-popup">
+  <div class="pop-head">
+    <div class="pop-stop-name" id="vp-label">Транспорт</div>
+    <button class="pop-close" onclick="closeVehPopup()">×</button>
+  </div>
+  <div class="pop-body">
+    <div class="pop-route-badge" id="vp-rbadge" style="cursor:pointer" onclick="showRouteFromVehPopup()" title="Маршрут на карте">&#128652; —</div>
+    <div class="pop-times-label" id="vp-direction"></div>
+    <div class="pop-times" id="vp-nextstop"></div>
+    <div class="pop-code" id="vp-meta"></div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="ld-bus">&#128652;</div>
+  <div class="ld-text" id="ld-text">Загрузка…</div>
+  <div class="ld-bar"><div class="ld-fill" id="ldfill"></div></div>
+</div>
+
+<!-- ══ СПЛЭШ: ВЫБОР ЯЗЫКА И АВТОЗАГРУЗКА GTFS ═══════════════════ -->
+<div id="splash">
+  <!-- Фото-фон -->
+  <div class="splash-bg"></div>
+
+  <!-- Заголовок поверх пейзажа -->
+  <div class="splash-hero">
+    <div class="splash-logo">🚌</div>
+    <div class="splash-title">Камчатка.Транспорт</div>
+    <div class="splash-sub">Выберите язык / Choose language</div>
+  </div>
+
+  <!-- Карточка снизу -->
+  <div class="splash-card">
+    <div class="splash-langs" id="splash-langs">
+      <button class="splash-lang selected" onclick="selectLang('ru',this)">
+        <span class="splash-lang-flag">🇷🇺</span>
+        <span class="splash-lang-name">Русский</span>
+        <span class="splash-lang-native">Russian</span>
+      </button>
+      <button class="splash-lang" onclick="selectLang('en',this)">
+        <span class="splash-lang-flag">🇬🇧</span>
+        <span class="splash-lang-name">English</span>
+        <span class="splash-lang-native">Английский</span>
+      </button>
+      <button class="splash-lang" onclick="selectLang('zh',this)">
+        <span class="splash-lang-flag">🇨🇳</span>
+        <span class="splash-lang-name">中文</span>
+        <span class="splash-lang-native">Китайский</span>
+      </button>
+      <button class="splash-lang" onclick="selectLang('ja',this)">
+        <span class="splash-lang-flag">🇯🇵</span>
+        <span class="splash-lang-name">日本語</span>
+        <span class="splash-lang-native">Японский</span>
+      </button>
+    </div>
+
+    <button class="splash-start" id="splash-start" onclick="startFromSplash()" disabled>Продолжить →</button>
+
+    <div id="splash-loading">
+      <div class="splash-ld-icon">🚌</div>
+      <div class="splash-ld-text" id="splash-ld-text">Загрузка расписания…</div>
+      <div class="splash-ld-bar"><div class="splash-ld-fill" id="splash-ld-fill"></div></div>
+      <div class="splash-ld-err" id="splash-ld-err"></div>
+      <button class="splash-retry" id="splash-retry" onclick="startFromSplash()">Повторить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ROUTE MODAL ═══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="route-modal" style="display:none">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="modal-logo">🗺️</div>
+      <div>
+        <div class="modal-title" data-i18n="route.choose">Выберите маршрут</div>
+        <div class="modal-subtitle" id="rm-subtitle">Маршруты загружены</div>
+      </div>
+    </div>
+    <div class="rm-search-wrap">
+      <input class="rm-search" id="rm-search"
+        placeholder="🔍 Поиск по номеру или названию…" data-i18n-placeholder="route.search"
+        oninput="filterRoutes(this.value)">
+      <div class="rm-count" id="rm-count"></div>
+    </div>
+    <div class="rm-list" id="rm-list"></div>
+    <div class="rm-footer">
+      <button class="rm-back" onclick="document.getElementById('route-modal').style.display='none'">← Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+
+const I18N={
+  ru:{'brand.title':'Камчатка.Транспорт','splash.title':'Камчатка.Транспорт','splash.subtitle':'Выберите язык интерфейса перед началом работы','splash.note':'Язык можно изменить позже в интерфейсе.','splash.start':'Продолжить','source.subtitle':'Загрузите данные транспортного расписания','tab.cloud':'☁️ Облако','tab.zip':'📦 ZIP файл','tab.folder':'📁 Папка','placeholder.url':'https://example.com/gtfs.zip','action.load':'Загрузить','zip.drop':'Перетащите GTFS-архив сюда','zip.select':'или нажмите для выбора файла .zip','folder.load':'Загрузить из папки ./gtfs/','route.choose':'Выберите маршрут','route.search':'🔍 Поиск по номеру или названию…','action.changeSource':'← Сменить источник','panel.stops':'Остановки','panel.routes':'Маршруты','btn.theme':'Тема','btn.feed':'Сменить фид','btn.locate':'Где я?','btn.planner':'Планировщик','btn.compass':'Компас','planner.title':'Маршрут по карте','planner.subtitle':'Точка на карте → общественный транспорт → точка на карте','planner.pickFrom':'Откуда','planner.pickTo':'Куда','planner.pickHint':'Нажмите на карту, чтобы выбрать точку','planner.useMyLocation':'От моей позиции','planner.clear':'Очистить','planner.build':'Построить маршрут','planner.pickStart':'Выберите начальную точку на карте','planner.pickEnd':'Выберите конечную точку на карте','planner.ready':'Выберите точки и нажмите «Построить маршрут»','planner.noPoints':'Точки маршрута пока не выбраны. Можно кликать по карте или по остановкам.','planner.result':'Лучший маршрут','planner.transfers':'Пересадки','planner.totalTime':'Время','planner.walk':'Пешком','planner.wait':'Ожидание','planner.noRoute':'Маршрут не найден в пределах доступной сети. Попробуйте выбрать точки ближе к остановкам.','planner.fromMyLocation':'Старт от моей позиции','planner.pointOnMap':'Точка на карте','planner.nearStop':'рядом с остановкой','planner.finalWalk':'Финальный проход','planner.transferStop':'Пересадка','fallback.geo':'Геолокация недоступна — показываю остановку «Краевая больница»'},
+  en:{'brand.title':'Kamchatka Transit','splash.title':'Kamchatka Transit','splash.subtitle':'Choose the interface language before you start','splash.note':'You can change the language later in the interface.','splash.start':'Continue','source.subtitle':'Load transit schedule data','tab.cloud':'☁️ Cloud','tab.zip':'📦 ZIP file','tab.folder':'📁 Folder','placeholder.url':'https://example.com/gtfs.zip','action.load':'Load','zip.drop':'Drop a GTFS archive here','zip.select':'or click to choose a .zip file','folder.load':'Load from ./gtfs/ folder','route.choose':'Choose a route','route.search':'🔍 Search by number or name…','action.changeSource':'← Change source','panel.stops':'Stops','panel.routes':'Routes','btn.theme':'Theme','btn.feed':'Change feed','btn.locate':'Where am I?','btn.planner':'Planner','btn.compass':'Compass','planner.title':'Map journey planner','planner.subtitle':'Point on map → transit network → point on map','planner.pickFrom':'From','planner.pickTo':'To','planner.pickHint':'Tap the map to choose a point','planner.useMyLocation':'Use my location','planner.clear':'Clear','planner.build':'Build route','planner.pickStart':'Choose the starting point on the map','planner.pickEnd':'Choose the destination point on the map','planner.ready':'Choose both points and build a route','planner.noPoints':'Route points are not selected yet. Click the map or a stop.','planner.result':'Best itinerary','planner.transfers':'Transfers','planner.totalTime':'Time','planner.walk':'Walk','planner.wait':'Wait','planner.noRoute':'No transit path found within the reachable network. Try points closer to stops.','planner.fromMyLocation':'Start from my location','planner.pointOnMap':'Point on map','planner.nearStop':'near stop','planner.finalWalk':'Final walk','planner.transferStop':'Transfer stop','fallback.geo':'Geolocation unavailable — showing stop “Kraevaya bolnitsa”'},
+  zh:{'brand.title':'堪察加交通','splash.title':'堪察加交通','splash.subtitle':'开始前请选择界面语言','splash.note':'稍后可在界面中更改语言。','splash.start':'继续','source.subtitle':'加载公共交通时刻数据','tab.cloud':'☁️ 云端','tab.zip':'📦 ZIP 文件','tab.folder':'📁 文件夹','placeholder.url':'https://example.com/gtfs.zip','action.load':'加载','zip.drop':'将 GTFS 压缩包拖到这里','zip.select':'或点击选择 .zip 文件','folder.load':'从 ./gtfs/ 文件夹加载','route.choose':'选择线路','route.search':'🔍 按编号或名称搜索…','action.changeSource':'← 更换来源','panel.stops':'站点','panel.routes':'线路','btn.theme':'主题','btn.feed':'更换数据源','btn.locate':'我的位置','btn.planner':'路线规划','btn.compass':'指南针','planner.title':'地图路线规划','planner.subtitle':'地图上的点 → 公交网络 → 地图上的点','planner.pickFrom':'起点','planner.pickTo':'终点','planner.pickHint':'点击地图选择位置','planner.useMyLocation':'使用我的位置','planner.clear':'清除','planner.build':'规划路线','planner.pickStart':'请选择起点','planner.pickEnd':'请选择终点','planner.ready':'请选择两个点并开始规划','planner.noPoints':'尚未选择路线点。可点击地图或站点。','planner.result':'最佳方案','planner.transfers':'换乘','planner.totalTime':'时间','planner.walk':'步行','planner.wait':'等待','planner.noRoute':'在可达网络内未找到公共交通路线。请尝试靠近站点的位置。','planner.fromMyLocation':'从我的位置出发','planner.pointOnMap':'地图点位','planner.nearStop':'靠近站点','planner.finalWalk':'最后步行','planner.transferStop':'换乘站','fallback.geo':'无法获取定位 — 显示“地区医院”站'},
+  ja:{'brand.title':'カムチャツカ交通','splash.title':'カムチャツカ交通','splash.subtitle':'開始前に表示言語を選択してください','splash.note':'言語は後で変更できます。','splash.start':'続行','source.subtitle':'交通ダイヤデータを読み込む','tab.cloud':'☁️ クラウド','tab.zip':'📦 ZIP ファイル','tab.folder':'📁 フォルダ','placeholder.url':'https://example.com/gtfs.zip','action.load':'読み込む','zip.drop':'GTFS アーカイブをここにドロップ','zip.select':'またはクリックして .zip ファイルを選択','folder.load':'./gtfs/ フォルダから読み込む','route.choose':'路線を選択','route.search':'🔍 番号または名称で検索…','action.changeSource':'← ソースを変更','panel.stops':'停留所','panel.routes':'路線','btn.theme':'テーマ','btn.feed':'フィード変更','btn.locate':'現在地','btn.planner':'経路検索','btn.compass':'コンパス','planner.title':'地図ルート検索','planner.subtitle':'地図上の地点 → 公共交通ネットワーク → 地図上の地点','planner.pickFrom':'出発','planner.pickTo':'到着','planner.pickHint':'地図をタップして地点を選択','planner.useMyLocation':'現在地を使う','planner.clear':'クリア','planner.build':'ルートを検索','planner.pickStart':'出発地点を選択してください','planner.pickEnd':'到着地点を選択してください','planner.ready':'2点を選択して検索してください','planner.noPoints':'経路点が未選択です。地図または停留所をクリックしてください。','planner.result':'最適ルート','planner.transfers':'乗り換え','planner.totalTime':'所要時間','planner.walk':'徒歩','planner.wait':'待機','planner.noRoute':'到達可能な公共交通ネットワーク内でルートが見つかりませんでした。停留所に近い地点をお試しください。','planner.fromMyLocation':'現在地から出発','planner.pointOnMap':'地図上の地点','planner.nearStop':'停留所付近','planner.finalWalk':'最後の徒歩','planner.transferStop':'乗り換え停留所','fallback.geo':'位置情報を取得できないため「地域病院」停留所を表示します'}
+};
+let currentLang=localStorage.getItem('kamchatka.transport.lang')||'ru';
+function t(key){return (I18N[currentLang]&&I18N[currentLang][key])||(I18N.ru[key])||key;}
+function applyI18n(){
+  document.documentElement.lang=currentLang;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.getAttribute('data-i18n'));});
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{el.setAttribute('placeholder',t(el.getAttribute('data-i18n-placeholder')));});
+  const tt=document.getElementById('theme-toggle'); if(tt) tt.title=t('btn.theme');
+  const fb=document.getElementById('feed-btn'); if(fb) fb.title=t('btn.feed');
+  const lb=document.getElementById('locate-btn'); if(lb) lb.title=t('btn.locate');
+  const pb=document.getElementById('planner-btn'); if(pb) pb.title=t('btn.planner');
+  const cb=document.getElementById('compass-btn'); if(cb) cb.title=t('btn.compass');
+  const start=document.getElementById('splash-start'); if(start) start.textContent=t('splash.start');
+  if(!S.route){setText('d-rname',t('panel.stops')); setText('m-rname',t('panel.stops'));}
+  renderPlannerCard();
+  updateCompassButton();
+}
+
+
+// ── MOBILE SHEET ──────────────────────────────────────────────
+(function(){
+  const sheet=document.getElementById('mob-sheet');
+  const handle=document.getElementById('sheet-handle');
+  const peekRow=document.getElementById('sheet-peek-row');
+  function getPeek(){return 88;}
+  function getFull(){return window.innerHeight*0.82;}
+  function isExpanded(){return sheet.classList.contains('expanded');}
+  function setExpanded(on){sheet.classList.toggle('expanded',on);}
+  peekRow.addEventListener('click',()=>setExpanded(!isExpanded()));
+  let startY=0,startH=0,drag=false;
+  function onDown(e){drag=true;startY=e.touches?e.touches[0].clientY:e.clientY;startH=sheet.offsetHeight;sheet.style.transition='none';}
+  function onMove(e){
+    if(!drag)return;e.preventDefault();
+    const cy=e.touches?e.touches[0].clientY:e.clientY;
+    const newH=Math.min(Math.max(startH+(startY-cy),getPeek()),getFull());
+    sheet.style.height=newH+'px';
+    const ratio=(newH-getPeek())/(getFull()-getPeek());
+    const body=sheet.querySelector('.sheet-body');
+    body.style.opacity=Math.min(ratio*2,1);
+    body.style.pointerEvents=ratio>0.3?'auto':'none';
+  }
+  function onUp(){
+    if(!drag)return;drag=false;
+    sheet.style.transition='';
+    setExpanded(sheet.offsetHeight>(getPeek()+getFull())/2);
+    sheet.style.height='';
+  }
+  handle.addEventListener('mousedown',onDown);
+  handle.addEventListener('touchstart',onDown,{passive:true});
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('touchmove',onMove,{passive:false});
+  document.addEventListener('mouseup',onUp);
+  document.addEventListener('touchend',onUp);
+  document.addEventListener('touchcancel',onUp);
+})();
+
+// ── STATE ────────────────────────────────────────────────────
+const S={
+  route:null,shapePath:[],stops:[],tripsData:null,
+  rtVehicles:[],currentTime:0,animSpeed:1.0,paused:false,zoom:14.2,
+  parsed:null,   // { routesArr, tripsArr, stopsArr, shapesArr, stopTimesArr }
+  allRoutes:[],  // all routes from loaded feed
+  allStops:[],
+  nearbyStops:[],
+  tripToRoute:new Map(),
+  tripMetaById:new Map(),
+  routeMetaById:new Map(),
+  stopById:new Map(),
+  shapePointsById:new Map(),
+  arrivalsByStopId:new Map(),
+  routeIdsByStopId:new Map(),
+  routeContextById:new Map(),
+  vehicleMetaById:new Map(),
+  vehicleAssignmentByTripId:new Map(),
+  vehicleAssignmentByRouteId:new Map(),
+  visibleRoutes:[],
+  panelMode:'stops',
+  selectedRouteIds:new Set(),
+  activeSelectedRouteId:null,
+  infoSlideIndex:0,
+  activeStopId:null,
+  selectedVehicleId:null,
+  followVehicleId:null,
+  lastFollowTs:0,
+  routeAnimById:new Map(),
+  stopTimesByTrip:new Map(),
+  plannerAdjacency:new Map(),
+  userLocation:null,
+  userLocationWatchId:null,
+  viewState:{longitude:158.700,latitude:53.015,zoom:12.5,pitch:0,bearing:0},
+  didAutoFocusVehicles:false,
+  overlayUpdateQueued:false,
+  nearbyUpdateQueued:false,
+  nearbyUpdateCenter:false,
+  planner:{
+    from:null,
+    to:null,
+    pickMode:null,
+    result:null,
+    error:'',
+    stats:null
+  },
+};
+
+// ── КОНСТАНТЫ И КОНФИГУРАЦИЯ ──────────────────────────────
+const LOOP=3000;
+const TARGET_VEHICLES_PER_ROUTE=10;
+const ROUTE_COLOR_PALETTE=['#e84525','#2563eb','#0f9d58','#f59e0b','#7c3aed','#db2777','#0891b2','#65a30d','#ea580c','#dc2626','#4f46e5','#059669'];
+const VEHICLE_MOTION_SMOOTHING_MS=420;
+const VEHICLE_BEARING_SMOOTHING_MS=260;
+const MIN_ROUTE_DURATION_MIN=8;
+const MAX_ROUTE_DURATION_MIN=180;
+const PLANNER_WALK_RADIUS_METERS=700;
+const PLANNER_TRANSFER_RADIUS_METERS=220;
+const PLANNER_WALK_SPEED_MPS=1.35;
+const PLANNER_TRANSFER_WAIT_MIN=4;
+const PLANNER_INITIAL_WAIT_MIN=2;
+
+// ── УТИЛИТЫ (ФОРМАТИРОВАНИЕ, МАТЕМАТИКА) ──────────────────
+function buildTripsData(path){
+  const lens=[0];
+  for(let i=1;i<path.length;i++){const dx=path[i][0]-path[i-1][0],dy=path[i][1]-path[i-1][1];lens.push(lens[i-1]+Math.sqrt(dx*dx+dy*dy));}
+  const tot=lens[lens.length-1]||1;
+  return [{path,timestamps:lens.map(l=>(l/tot)*LOOP)}];
+}
+
+function busPos(){
+  if(!S.tripsData)return[0,0];
+  const pos=getPathPos(S.tripsData[0],S.currentTime);
+  return pos?[pos[0],pos[1]]:S.tripsData[0].path[S.tripsData[0].path.length-1];
+}
+
+function getPathPos(td,time){
+  if(!td||!td.path||!td.path.length)return null;
+  const ts=((time%LOOP)+LOOP)%LOOP;
+  for(let i=1;i<td.timestamps.length;i++){
+    if(td.timestamps[i]>=ts){
+      const span=(td.timestamps[i]-td.timestamps[i-1])||1;
+      const f=(ts-td.timestamps[i-1])/span;
+      const [x1,y1]=td.path[i-1],[x2,y2]=td.path[i];
+      return [x1+(x2-x1)*f,y1+(y2-y1)*f,i-1,i];
+    }
+  }
+  const n=td.path.length-1;
+  return [td.path[n][0],td.path[n][1],Math.max(0,n-1),n];
+}
+
+function getBearing(a,b){
+  if(!a||!b)return 0;
+  const dx=b[0]-a[0],dy=b[1]-a[1];
+  return (Math.atan2(dx,dy)*180/Math.PI+360)%360;
+}
+
+function normalizeName(s){
+  return String(s||'').toLowerCase().replace(/ё/g,'е').replace(/["«»]/g,'').replace(/\s+/g,' ').trim();
+}
+
+function hashString(s){
+  let h=0;
+  const str=String(s||'');
+  for(let i=0;i<str.length;i++)h=((h<<5)-h+str.charCodeAt(i))|0;
+  return Math.abs(h);
+}
+
+function dampFactor(deltaMs, smoothingMs){
+  const safe=Math.max(1,smoothingMs||1);
+  return 1-Math.exp(-Math.max(0,deltaMs)/safe);
+}
+
+function lerp(a,b,t){
+  return a+(b-a)*t;
+}
+
+function shortestLoopDelta(from,to,loop){
+  let delta=((to-from)%loop+loop)%loop;
+  if(delta>loop/2)delta-=loop;
+  return delta;
+}
+
+function lerpAngle(from,to,t){
+  const delta=((((to-from)+540)%360)-180);
+  return (from+delta*t+360)%360;
+}
+
+function clampAnimVelocity(value){
+  const min=LOOP/(MAX_ROUTE_DURATION_MIN*60000);
+  const max=LOOP/(MIN_ROUTE_DURATION_MIN*60000);
+  if(!Number.isFinite(value))return LOOP/(45*60000);
+  return Math.max(min,Math.min(max,value));
+}
+
+function getFallbackAnimVelocity(routeId){
+  const ctx=S.routeContextById.get(routeId);
+  const simTrips=ctx&&ctx.simTrips||[];
+  if(simTrips.length){
+    const avgDurationMin=simTrips.reduce((sum,trip)=>sum+Math.max(1,trip.durationMin||0),0)/simTrips.length;
+    return clampAnimVelocity(LOOP/(avgDurationMin*60000));
+  }
+  return clampAnimVelocity(LOOP/(45*60000));
+}
+
+function getPaletteRouteHex(seed){
+  return ROUTE_COLOR_PALETTE[hashString(seed)%ROUTE_COLOR_PALETTE.length];
+}
+
+function resolveRouteHex(route){
+  const raw=String(route&&route.route_color||'').replace(/^#/,'');
+  const valid=/^[0-9a-fA-F]{6}$/.test(raw)?('#'+raw.toLowerCase()):'';
+  if(valid && valid!=='#e84525' && valid!=='#ff0000')return valid;
+  return getPaletteRouteHex(route&&route.route_id||'route');
+}
+
+function getSelectedRouteIds(){
+  return [...(S.selectedRouteIds||new Set())];
+}
+
+function getSelectedRoutes(){
+  return getSelectedRouteIds().map(id=>S.routeMetaById.get(id)).filter(Boolean);
+}
+
+function getPrimarySelectedRoute(){
+  const selectedIds=getSelectedRouteIds();
+  const activeId=S.activeSelectedRouteId&&S.selectedRouteIds&&S.selectedRouteIds.has(S.activeSelectedRouteId)
+    ?S.activeSelectedRouteId
+    :(selectedIds[selectedIds.length-1]||null);
+  return activeId?(S.routeMetaById.get(activeId)||null):null;
+}
+
+function getRoutePathData(routeId){
+  const ctx=S.routeContextById.get(routeId);
+  if(!ctx||!ctx.shapePath||ctx.shapePath.length<2)return null;
+  const route=ctx.route||S.routeMetaById.get(routeId)||{route_id:routeId,route_short_name:routeId,hex:getPaletteRouteHex(routeId)};
+  return {routeId,path:ctx.shapePath,route,color:hexRgb(route.hex||resolveRouteHex(route))};
+}
+
+function getPreviewRouteData(routeIds){
+  const data=[];
+  const seen=new Set();
+  for(const routeId of routeIds||[]){
+    if(!routeId||seen.has(routeId))continue;
+    seen.add(routeId);
+    const item=getRoutePathData(routeId);
+    if(item)data.push(item);
+  }
+  return data;
+}
+
+function getVisibleRouteIdsForMap(){
+  if(S.route&&S.route.id)return [S.route.id];
+  const selectedIds=getSelectedRouteIds();
+  if(selectedIds.length)return selectedIds;
+  return (S.visibleRoutes||[]).map(route=>route.route_id).filter(Boolean);
+}
+
+function getVisibleVehiclesForMap(){
+  const vehicles=S.rtVehicles||[];
+  const routeIds=getVisibleRouteIdsForMap();
+  if(!routeIds.length)return vehicles;
+  const allowed=new Set(routeIds);
+  return vehicles.filter(vehicle=>allowed.has(vehicle.routeId));
+}
+
+function formatVehicleSource(source){
+  const map={
+    ws:'Live WebSocket',
+    http:'Live snapshot',
+    sim:'Офлайн график',
+    'sim-fill':'Офлайн добивка',
+    'sim-fallback':'Офлайн fallback'
+  };
+  return map[source]||'Транспорт';
+}
+
+function formatMinsUntil(time){
+  if(!time)return 'нет данных';
+  const nowMin=new Date().getHours()*60+new Date().getMinutes();
+  let diff=parseTimeMin(time)-nowMin;
+  if(diff<0)diff+=24*60;
+  return diff<=0?'сейчас':`через ${diff} мин`;
+}
+
+function routeLengthKm(path){
+  if(!path||path.length<2)return 0;
+  let meters=0;
+  for(let i=1;i<path.length;i++)meters+=haversineMeters(path[i-1][1],path[i-1][0],path[i][1],path[i][0]);
+  return meters/1000;
+}
+
+function boolLabel(value){
+  return String(value)==='1'?'Да':String(value)==='0'?'Нет':'Нет данных';
+}
+
+function getPrimaryRouteContext(){
+  const route=S.route?(S.routeMetaById.get(S.route.id)||S.route):getPrimarySelectedRoute();
+  if(!route)return {route:null,ctx:null};
+  const routeId=route.route_id||route.id;
+  return {route,ctx:S.routeContextById.get(routeId)||null};
+}
+
+function jsArg(value){
+  return JSON.stringify(value==null?'':String(value));
+}
+
+function buildCardLinksHtml(items){
+  const actions=(items||[]).filter(Boolean);
+  if(!actions.length)return '';
+  return `<div class="info-link-actions">${actions.map(item=>{
+    const disabled=item.disabled||!item.onclick;
+    return `<button type="button" class="info-link-btn${disabled?' is-disabled':''}" ${disabled?'disabled':`onclick='${item.onclick}'`} aria-label="${escHtml(item.label)}"><span class="info-link-icon">${item.iconHtml||'#'}</span><span>${escHtml(item.label)}</span></button>`;
+  }).join('')}</div>`;
+}
+
+function setInfoSlideByKey(key){
+  const index=buildInfoSlides().findIndex(slide=>slide.key===key);
+  S.infoSlideIndex=index<0?0:index;
+  renderInfoSlides();
+}
+
+// ── МАРШРУТЫ (КАРТОЧКИ, НАВИГАЦИЯ) ───────────────────────
+// Переключается на карточку маршрута; при необходимости загружает его
+async function goToRouteCard(routeId){
+  if(!routeId)return;
+  if(!S.route||S.route.id!==routeId){
+    await setupAndShowRoute(routeId);
+  }
+  setInfoSlideByKey('route');
+}
+
+function goToStopCard(stopId){
+  if(!stopId)return;
+  const list=S.stops||[];
+  const currentIndex=list.findIndex(stop=>stop.stop_id===stopId);
+  const stop=currentIndex>=0?list[currentIndex]:S.stopById.get(stopId);
+  if(!stop)return;
+  S.activeStopId=stop.stop_id;
+  syncActiveStopPin();
+  if(!S.route)highlightRoutesForStop(stop);
+  setInfoSlideByKey('stop');
+}
+
+function goToVehicleCard(vehicleId, routeId){
+  let vehicle=vehicleId?(S.rtVehicles||[]).find(item=>item.id===vehicleId):null;
+  if(!vehicle&&routeId)vehicle=(S.rtVehicles||[]).find(item=>item.routeId===routeId)||null;
+  if(vehicle){
+    focusVehicle(vehicle);
+    return;
+  }
+  setInfoSlideByKey('vehicle');
+}
+
+function buildNearbySlide(){
+  const nearbyStops=(S.nearbyStops||[]).slice(0,4);
+  const visibleRoutes=(S.visibleRoutes||[]).slice(0,6);
+  return {
+    key:'nearby',
+    label:'Рядом',
+    badge:String((nearbyStops.length||0)+(visibleRoutes.length||0)),
+    badgeColor:'#2563eb',
+    title:'Остановки и маршруты рядом',
+    meta:`${nearbyStops.length} остановок · ${visibleRoutes.length} маршрутов в текущем окне карты`,
+    rows:[
+      {label:'Остановок',value:String(nearbyStops.length)},
+      {label:'Маршрутов',value:String(visibleRoutes.length)},
+      {label:'Режим',value:S.panelMode==='routes'?'Маршруты':'Остановки'},
+      {label:'Геолокация',value:S.userLocation?'Есть':'Нет'}
+    ],
+    bodyHtml:`${nearbyStops.length?`<div class="info-board">${nearbyStops.map(stop=>`<div class="info-board-row"><div><div class="info-board-route">${escHtml(stop.name)}</div><div class="info-muted">${escHtml(nextArrival(stop)||'Нет ближайших прибытия')}</div></div><div class="info-board-time">${Math.round(stop.distance||0)} м</div></div>`).join('')}</div>`:'<div class="info-muted">Переместите карту или включите геолокацию, чтобы увидеть ближайшие остановки.</div>'}`,
+    chips:visibleRoutes.map(route=>`№${route.route_short_name||route.route_id}`)
+  };
+}
+
+function buildRouteTimelineHtml(routeId, stops){
+  if(!stops||!stops.length)return '<div class="info-muted">Остановки для маршрута не найдены.</div>';
+  let visitedIndex=-1;
+  let nextIndex=0;
+  if(S.route&&S.route.id===routeId&&S.stops&&S.stops.length){
+    const pct=((S.currentTime%LOOP)+LOOP)%LOOP/LOOP;
+    visitedIndex=Math.floor(pct*Math.max(0,S.stops.length-1));
+    nextIndex=Math.min(visitedIndex+1,S.stops.length-1);
+  }
+  return `<div class="route-timeline">${stops.map((stop,index)=>`<div class="route-timeline-item"><div class="route-timeline-dot${index<=visitedIndex?' is-done':''}${index===nextIndex?' is-next':''}"></div><div class="route-timeline-copy"><div class="route-timeline-title">${escHtml(stop.name)}</div><div class="route-timeline-sub">${escHtml(stop.code?('код '+stop.code):('остановка '+(index+1)))}</div></div></div>`).join('')}</div>`;
+}
+
+// Строит объект слайда с данными маршрута (длина, время, остановки, прогресс)
+function buildRouteSlide(){
+  const{route,ctx}=getPrimaryRouteContext();
+  if(!route){
+    return {
+      key:'route',
+      label:'Маршрут',
+      badge:'—',
+      badgeColor:'#e84525',
+      title:'Карточка маршрута',
+      meta:'Выберите маршрут на карте или во вкладке маршрутов',
+      rows:[],
+      bodyHtml:'<div class="info-muted">Здесь появятся длина маршрута, среднее время в пути, атрибуты из GTFS и список остановок с прогрессом прохождения.</div>',
+      chips:[]
+    };
+  }
+  const routeId=route.route_id||route.id;
+  const lengthKm=routeLengthKm(ctx&&ctx.shapePath||[]);
+  const avgDurationMin=ctx&&ctx.simTrips&&ctx.simTrips.length?Math.round(ctx.simTrips.reduce((sum,trip)=>sum+Math.max(1,trip.durationMin||0),0)/ctx.simTrips.length):0;
+  const progressPct=S.route&&S.route.id===routeId?Math.round((((S.currentTime%LOOP)+LOOP)%LOOP/LOOP)*100):0;
+  const stopCount=ctx&&ctx.stops?ctx.stops.length:0;
+  const activeVehicles=(S.rtVehicles||[]).filter(vehicle=>vehicle.routeId===routeId).length;
+  const firstStop=ctx&&ctx.stops&&ctx.stops[0];
+  const lastStop=ctx&&ctx.stops&&ctx.stops[ctx.stops.length-1];
+  const activeStop=getActiveStopData();
+  const routeStopForLink=activeStop&&[...(ctx&&ctx.stops||[])].some(stop=>stop.stop_id===activeStop.stop_id)?activeStop:(firstStop||null);
+  const linkedVehicle=(S.rtVehicles||[]).find(vehicle=>vehicle.id===S.selectedVehicleId&&vehicle.routeId===routeId)||(S.rtVehicles||[]).find(vehicle=>vehicle.routeId===routeId)||null;
+  const quickLinks=buildCardLinksHtml([
+    {
+      label:linkedVehicle?`ТС ${linkedVehicle.label||linkedVehicle.id}`:'ТС на маршруте',
+      iconHtml:'&#128652;',
+      onclick:linkedVehicle?`goToVehicleCard(${jsArg(linkedVehicle.id)},${jsArg(routeId)})`:''
+    },
+    {
+      label:routeStopForLink?`Остановка ${routeStopForLink.name}`:'Остановки маршрута',
+      iconHtml:'&#9679;',
+      onclick:routeStopForLink?`goToStopCard(${jsArg(routeStopForLink.stop_id)})`:''
+    }
+  ]);
+  return {
+    key:'route',
+    label:'Маршрут',
+    badge:route.route_short_name||routeId||'—',
+    badgeColor:route.hex||resolveRouteHex(route),
+    title:route.route_long_name||route.route_short_name||routeId||'Маршрут',
+    meta:`${routeTypeLabel(route.route_type)} · ${stopCount} остановок · ${activeVehicles} ТС на карте`,
+    rows:[
+      {label:'Номер',value:route.route_short_name||'—'},
+      {label:'Длина',value:lengthKm?`${lengthKm.toFixed(1)} км`:'—'},
+      {label:'В пути',value:avgDurationMin?`${avgDurationMin} мин`:'—'},
+      {label:'Тип',value:routeTypeLabel(route.route_type)},
+      {label:'Route ID',value:routeId},
+      {label:'Агентство',value:route.agency_id||'—'},
+      {label:'Network',value:route.network_id||'—'},
+      {label:'Цвет',value:route.route_color?`#${route.route_color}`:'по палитре'},
+      {label:'Текст',value:route.route_text_color?`#${route.route_text_color}`:'—'},
+      {label:'Посадка/высадка',value:`${route.continuous_pickup||'—'} / ${route.continuous_drop_off||'—'}`}
+    ],
+    bodyHtml:(()=>{
+      const routeVehicles=(S.rtVehicles||[]).filter(v=>v.routeId===routeId);
+      const vehicleListHtml=routeVehicles.length
+        ?`<div class="info-board">${routeVehicles.map(v=>`<div class="info-board-row" style="cursor:pointer" onclick="goToVehicleCard(${jsArg(v.id)},${jsArg(routeId)});openPanel()"><div><div class="info-board-route">&#128652; ${escHtml(v.label||v.id)}</div><div class="info-muted">${escHtml(v.source==='sim'?'Симуляция · рейс'+v.tripId.split('_').pop():v.source)}</div></div><div class="info-board-time" style="font-size:10px;color:var(--t3)">›</div></div>`).join('')}</div>`
+        :'<div class="info-muted">Нет активных ТС на маршруте</div>';
+      return `<div class="info-slide-section"><div class="info-slide-section-title">Связанные карточки</div>${quickLinks}</div><div class="info-slide-section"><div class="info-slide-section-title">ТС на маршруте (${routeVehicles.length})</div>${vehicleListHtml}</div><div class="info-slide-section"><div class="info-slide-section-title">Сводка маршрута</div><div class="info-board"><div class="info-board-row"><div><div class="info-board-route">Начальная остановка</div><div class="info-muted">${escHtml(firstStop&&firstStop.code?('код '+firstStop.code):'точка старта')}</div></div><div class="info-board-time">${escHtml(firstStop&&firstStop.name||'—')}</div></div><div class="info-board-row"><div><div class="info-board-route">Конечная остановка</div><div class="info-muted">${escHtml(lastStop&&lastStop.code?('код '+lastStop.code):'точка завершения')}</div></div><div class="info-board-time">${escHtml(lastStop&&lastStop.name||'—')}</div></div></div></div><div class="info-slide-section"><div class="info-slide-section-title">Прохождение по остановкам</div><div class="route-card-progress"><div class="route-card-progress-top"><span>Прогресс маршрута</span><span>${progressPct}%</span></div><div class="route-card-track"><div class="route-card-fill" style="width:${progressPct}%"></div></div></div>${buildRouteTimelineHtml(routeId,(ctx&&ctx.stops)||[])}</div>`;
+    })(),
+    chips:[route.route_color?`цвет ${route.route_color}`:'цвет по палитре',route.route_text_color?`текст ${route.route_text_color}`:'',route.route_short_name?`№${route.route_short_name}`:''].filter(Boolean)
+  };
+}
+
+function getActiveStopData(){
+  if(!S.activeStopId)return null;
+  const current=(S.stops||[]).find(stop=>stop.stop_id===S.activeStopId);
+  if(current)return current;
+  const stop=S.stopById.get(S.activeStopId);
+  if(!stop)return null;
+  return {...stop,arrivals:(S.arrivalsByStopId.get(stop.stop_id)||[]).slice(0,10)};
+}
+
+function getSelectedVehicle(){
+  return (S.rtVehicles||[]).find(vehicle=>vehicle.id===S.selectedVehicleId)||null;
+}
+
+function buildStopSlide(){
+  const stop=getActiveStopData();
+  if(!stop){
+    return {
+      key:'stop',
+      label:'Остановка',
+      badge:'●',
+      badgeColor:'#e84525',
+      title:'Карточка остановки',
+      meta:'Кликните по остановке на карте',
+      rows:[],
+      bodyHtml:'<div class="info-muted">Здесь появятся полное название, краткое название, маршруты через остановку и остановочное табло.</div>',
+      chips:[]
+    };
+  }
+  const routeIds=[...(S.routeIdsByStopId.get(stop.stop_id)||[])];
+  const routeChips=routeIds.map(routeId=>{
+    const route=S.routeMetaById.get(routeId);
+    return `№${route&&route.route_short_name||routeId}`;
+  }).slice(0,8);
+  const activeRouteId=S.route&&S.route.id||S.activeSelectedRouteId||routeIds[0]||'';
+  const etaForSelected=activeRouteId?(stop.arrivals||[]).find(arr=>arr.routeId===activeRouteId):null;
+  const board=(stop.arrivals||[]).slice(0,6);
+  const activeRoute=S.routeMetaById.get(activeRouteId);
+  const linkedVehicle=(S.rtVehicles||[]).find(vehicle=>vehicle.id===S.selectedVehicleId&&vehicle.routeId===activeRouteId)||(S.rtVehicles||[]).find(vehicle=>vehicle.routeId===activeRouteId)||null;
+  const quickLinks=buildCardLinksHtml([
+    {
+      label:activeRoute&&activeRoute.route_short_name?`Маршрут №${activeRoute.route_short_name}`:'Карточка маршрута',
+      iconHtml:'#',
+      onclick:activeRouteId?`goToRouteCard(${jsArg(activeRouteId)})`:''
+    },
+    {
+      label:linkedVehicle?`ТС ${linkedVehicle.label||linkedVehicle.id}`:'ТС на маршруте',
+      iconHtml:'&#128652;',
+      onclick:linkedVehicle?`goToVehicleCard(${jsArg(linkedVehicle.id)},${jsArg(activeRouteId)})`:''
+    }
+  ]);
+  return {
+    key:'stop',
+    label:'Остановка',
+    badge:'●',
+    badgeColor:'#e84525',
+    title:stop.name||stop.stop_id||'Остановка',
+    meta:(stop.short_name?`Кратко: ${stop.short_name} · `:'')+`${routeIds.length} маршрутов через остановку`,
+    rows:[
+      {label:'Полное имя',value:stop.name||'—'},
+      {label:'ID',value:stop.stop_id||'—'},
+      {label:'Короткое имя',value:stop.short_name||stop.code||'Нет данных'},
+      {label:'Платформа',value:stop.platform||'—'},
+      {label:'Описание',value:stop.desc||'—'},
+      {label:'Доступность',value:boolLabel(stop.wheelchair_boarding)}
+    ],
+    bodyHtml:`<div class="info-slide-section"><div class="info-slide-section-title">Связанные карточки</div>${quickLinks}</div><div class="info-slide-section"><div class="info-slide-section-title">Остановочное табло</div>${board.length?`<div class="info-board">${board.map(arr=>`<div class="info-board-row"><div><div class="info-board-route">${escHtml(arr.routeShort?('№'+arr.routeShort):arr.routeId)}</div><div class="info-muted">${escHtml(formatTime(arr.time))}</div></div><div class="info-board-time">${escHtml(formatMinsUntil(arr.time))}</div></div>`).join('')}</div>`:'<div class="info-muted">Нет остановочного табло для этой остановки.</div>'}</div><div class="info-slide-section"><div class="info-slide-section-title">Выбранный маршрут</div><div class="info-board"><div class="info-board-row"><div><div class="info-board-route">${escHtml(activeRoute&&activeRoute.route_short_name?('№'+activeRoute.route_short_name):'Маршрут не выбран')}</div><div class="info-muted">${escHtml(activeRoute&&activeRoute.route_long_name||'Выберите маршрут или кликните по остановке')}</div></div><div class="info-board-time">${escHtml(etaForSelected?formatMinsUntil(etaForSelected.time):'нет данных')}</div></div></div></div>`,
+    chips:routeChips
+  };
+}
+
+function getVehicleProfile(vehicle){
+  if(!vehicle)return {route:null,trip:null,assignment:null,meta:null};
+  const tripId=(vehicle.tripId||'').split(':')[0];
+  const assignment=(tripId&&S.vehicleAssignmentByTripId.get(tripId))||S.vehicleAssignmentByRouteId.get(vehicle.routeId)||null;
+  const meta=assignment&&S.vehicleMetaById.get(assignment.vehicle_id)||null;
+  const trip=tripId&&S.tripMetaById.get(tripId)||null;
+  const route=S.routeMetaById.get(vehicle.routeId)||null;
+  return {route,trip,assignment,meta};
+}
+
+function buildVehicleSlide(){
+  const vehicle=getSelectedVehicle();
+  if(!vehicle){
+    return {
+      key:'vehicle',
+      label:'Транспорт',
+      badge:'ТС',
+      badgeColor:'#2563eb',
+      title:'Карточка транспортного средства',
+      meta:'Выберите автобус на карте',
+      rows:[],
+      bodyHtml:'<div class="info-muted">Здесь появятся вместимость, удобства, характеристики, доступность для инвалидов и маршрут транспортного средства.</div>',
+      chips:[]
+    };
+  }
+  const profile=getVehicleProfile(vehicle);
+  const meta=profile.meta;
+  const routeId=(profile.route&&profile.route.route_id)||vehicle.routeId||'';
+  const routeCtx=routeId?S.routeContextById.get(routeId):null;
+  const routeStopForLink=(getActiveStopData()&&routeCtx&&[...(routeCtx.stops||[])].some(stop=>stop.stop_id===getActiveStopData().stop_id)?getActiveStopData():null)||(routeCtx&&routeCtx.stops&&routeCtx.stops[0])||null;
+  const features=[
+    meta&&String(meta.air_conditioning)==='1'?'Кондиционер':'',
+    meta&&String(meta.heating)==='1'?'Отопление':'',
+    meta&&String(meta.low_floor)==='1'?'Низкий пол':'',
+    meta&&String(meta.cctv)==='1'?'CCTV':'',
+    meta&&String(meta.usb)==='1'?'USB':'',
+    meta&&String(meta.wifi)==='1'?'Wi‑Fi':'',
+    meta&&String(meta.validator)==='1'?'Валидатор':''
+  ].filter(Boolean);
+  const quickLinks=buildCardLinksHtml([
+    {
+      label:(profile.route&&profile.route.route_short_name)?`Маршрут №${profile.route.route_short_name}`:'Карточка маршрута',
+      iconHtml:'#',
+      onclick:routeId?`goToRouteCard(${jsArg(routeId)})`:''
+    },
+    {
+      label:routeStopForLink?`Остановка ${routeStopForLink.name}`:'Карточка остановки',
+      iconHtml:'&#9679;',
+      onclick:routeStopForLink?`goToStopCard(${jsArg(routeStopForLink.stop_id)})`:''
+    }
+  ]);
+  return {
+    key:'vehicle',
+    label:'Транспорт',
+    badge:vehicle.label||'ТС',
+    badgeColor:profile.route&&profile.route.hex||'#2563eb',
+    title:(meta&&meta.label)||('Транспортное средство '+(vehicle.id||'')),
+    meta:`${formatVehicleSource(vehicle.source)} · маршрут ${(profile.route&&profile.route.route_short_name)||vehicle.routeId||'—'}`,
+    rows:[
+      {label:'Госномер',value:meta&&meta.label||vehicle.label||'—'},
+      {label:'Гаражный',value:meta&&meta.garage_number||'—'},
+      {label:'Вместимость',value:meta&&meta.capacity||'Нет данных в фиде'},
+      {label:'Сидячих',value:meta&&meta.seating_capacity||'—'},
+      {label:'Стоячих',value:meta&&meta.standing_capacity||'—'},
+      {label:'Инвалиды',value:meta?boolLabel(meta.wheelchair):(profile.trip?boolLabel(profile.trip.wheelchair_accessible):'Нет данных')},
+      {label:'Маршрут',value:(profile.route&&profile.route.route_long_name)||(profile.route&&profile.route.route_short_name)||vehicle.routeId||'—'},
+      {label:'Тип',value:meta&&meta.vehicle_type||'—'},
+      {label:'Характеристики',value:[meta&&meta.fuel_type,meta&&meta.model].filter(Boolean).join(' · ')||'Нет данных'},
+      {label:'Производитель',value:meta&&meta.manufacturer||'—'},
+      {label:'Год',value:meta&&meta.year||'—'},
+      {label:'Депо',value:meta&&meta.depot||'—'}
+    ],
+    bodyHtml:`<div class="info-slide-section"><div class="info-slide-section-title">Связанные карточки</div>${quickLinks}</div><div class="info-slide-section"><div class="info-slide-section-title">Комфорт и оснащение</div><div class="info-board"><div class="info-board-row"><div><div class="info-board-route">Маршрут движения</div><div class="info-muted">${escHtml((profile.route&&profile.route.route_long_name)||(profile.route&&profile.route.route_short_name)||vehicle.routeId||'—')}</div></div><div class="info-board-time">${escHtml(profile.route&&profile.route.route_short_name?('№'+profile.route.route_short_name):'—')}</div></div><div class="info-board-row"><div><div class="info-board-route">Обеспечение инвалидов</div><div class="info-muted">По данным фида ТС/рейса</div></div><div class="info-board-time">${escHtml(meta?boolLabel(meta.wheelchair):(profile.trip?boolLabel(profile.trip.wheelchair_accessible):'Нет данных'))}</div></div></div></div><div class="info-slide-section"><div class="info-slide-section-title">Примечания</div><div class="info-muted">${escHtml(meta&&meta.notes||profile.assignment&&profile.assignment.notes||'Дополнительные характеристики отсутствуют в фиде.')}</div></div>`,
+    chips:features.length?features:['Нет данных по удобствам']
+  };
+}
+
+function highlightRoutesForStop(stop){
+  if(!stop||S.route)return;
+  const routeIds=[...(S.routeIdsByStopId.get(stop.stop_id)||[])].filter(Boolean);
+  if(!routeIds.length)return;
+  const sortedRouteIds=routeIds.sort((a,b)=>{
+    const routeA=S.routeMetaById.get(a);
+    const routeB=S.routeMetaById.get(b);
+    return String(routeA&&routeA.route_short_name||a).localeCompare(String(routeB&&routeB.route_short_name||b),undefined,{numeric:true});
+  });
+  S.selectedRouteIds=new Set(sortedRouteIds);
+  S.activeSelectedRouteId=sortedRouteIds[0]||null;
+  buildRoutesList();
+  renderInfoSlides();
+}
+
+function buildInfoSlides(){
+  return[
+    buildNearbySlide(),
+    buildRouteSlide(),
+    buildStopSlide(),
+    buildVehicleSlide()
+  ];
+}
+
+function setInfoSlideIndex(index){
+  const slides=buildInfoSlides();
+  if(!slides.length){
+    S.infoSlideIndex=0;
+    renderInfoSlides();
+    return;
+  }
+  const total=slides.length;
+  S.infoSlideIndex=((index%total)+total)%total;
+  renderInfoSlides();
+}
+
+function stepInfoSlide(delta){
+  setInfoSlideIndex((S.infoSlideIndex||0)+delta);
+}
+
+function renderInfoSlides(){
+  const slides=buildInfoSlides();
+  if(!slides.length){
+    ['d-route-params','m-route-params'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el)el.innerHTML='<div class="info-slides-empty">Выберите маршрут, остановку или транспорт на карте</div>';
+    });
+    return;
+  }
+  if((S.infoSlideIndex||0)>=slides.length)S.infoSlideIndex=slides.length-1;
+  const index=Math.max(0,S.infoSlideIndex||0);
+  const html=`<div class="info-slides"><div class="info-slides-head"><div class="info-slides-label">Карточки</div><div class="info-slides-nav">${slides.length>1?`<button class="info-slide-arrow" onclick="stepInfoSlide(-1)" aria-label="Предыдущий слайд">‹</button><button class="info-slide-arrow" onclick="stepInfoSlide(1)" aria-label="Следующий слайд">›</button>`:''}</div></div><div class="info-slides-window"><div class="info-slides-track" style="transform:translateX(-${index*100}%);">${slides.map(slide=>{
+    const rowsHtml=slide.rows&&slide.rows.length?`<div class="info-slide-grid">${slide.rows.map(row=>`<div class="info-slide-row"><div class="info-slide-row-label">${escHtml(row.label)}</div><div class="info-slide-row-value">${escHtml(row.value)}</div></div>`).join('')}</div>`:'';
+    const bodyHtml=slide.bodyHtml?`<div class="info-slide-body">${slide.bodyHtml}</div>`:'';
+    const chipsHtml=slide.chips&&slide.chips.length?`<div class="info-slide-chips">${slide.chips.map(chip=>`<span class="info-slide-chip">${escHtml(chip)}</span>`).join('')}</div>`:'';
+    return `<section class="info-slide"><article class="info-slide-card"><div class="info-slide-top"><div class="info-slide-badge" style="background:${escHtml(slide.badgeColor)}">${escHtml(slide.badge)}</div><div class="info-slide-main"><div class="info-slide-kicker">${escHtml(slide.label)}</div><div class="info-slide-title">${escHtml(slide.title)}</div><div class="info-slide-meta">${escHtml(slide.meta)}</div></div></div>${rowsHtml}${bodyHtml}${chipsHtml}</article></section>`;
+  }).join('')}</div></div>${slides.length>1?`<div class="info-slide-dots">${slides.map((slide,slideIndex)=>`<button class="info-slide-dot${slideIndex===index?' active':''}" onclick="setInfoSlideIndex(${slideIndex})" aria-label="${escHtml(slide.label)}"></button>`).join('')}</div>`:''}</div>`;
+  ['d-route-params','m-route-params'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.innerHTML=html;
+  });
+}
+
+function focusRoutePreview(routeId){
+  const ctx=S.routeContextById.get(routeId);
+  if(!ctx||!ctx.shapePath||!ctx.shapePath.length)return;
+  const lons=ctx.shapePath.map(p=>p[0]);
+  const lats=ctx.shapePath.map(p=>p[1]);
+  const span=Math.max(Math.max(...lons)-Math.min(...lons),Math.max(...lats)-Math.min(...lats));
+  const zoom=span>0.2?11.6:span>0.08?12.4:span>0.03?13.2:14.1;
+  deckgl.setProps({initialViewState:{
+    longitude:(Math.min(...lons)+Math.max(...lons))/2,
+    latitude:(Math.min(...lats)+Math.max(...lats))/2,
+    zoom,pitch:0,bearing:0,transitionDuration:700
+  }});
+}
+
+function renderSelectedRoutesCard(){
+  renderInfoSlides();
+}
+
+// ── ПЛАНИРОВЩИК МАРШРУТОВ ─────────────────────────────────
+function updatePlannerButton(){
+  const btn=document.getElementById('planner-btn');
+  if(!btn)return;
+  btn.classList.toggle('is-active',!!(S.planner.pickMode||S.planner.from||S.planner.to||S.planner.result));
+}
+
+function setPlannerPickMode(mode){
+  S.planner.pickMode=S.planner.pickMode===mode?null:mode;
+  updatePlannerButton();
+  renderPlannerCard();
+}
+
+function togglePlannerMode(){
+  if(!S.parsed){showSplash();return;}
+  if(isPanelOpen()){closePanel();return;}
+  openPanel();
+  if(!S.planner.from){
+    setPlannerPickMode('from');
+    return;
+  }
+  if(!S.planner.to){
+    setPlannerPickMode('to');
+    return;
+  }
+  setPlannerPickMode(S.planner.pickMode?null:'from');
+}
+
+function clearPlannerRoute(){
+  S.planner.from=null;
+  S.planner.to=null;
+  S.planner.pickMode=null;
+  S.planner.result=null;
+  S.planner.error='';
+  S.planner.stats=null;
+  updatePlannerButton();
+  renderPlannerCard();
+}
+
+function usePlannerUserLocation(){
+  if(!S.userLocation){
+    geolocateMe();
+    S.planner.error='';
+    renderPlannerCard();
+    return;
+  }
+  setPlannerPoint('from',S.userLocation.lon,S.userLocation.lat,{source:'user'});
+}
+
+function setPlannerPoint(target,lon,lat,meta={}){
+  const actualTarget=target||S.planner.pickMode||(!S.planner.from?'from':'to');
+  S.planner[actualTarget]=makePlannerPoint(lon,lat,meta);
+  S.planner.result=null;
+  S.planner.error='';
+  S.planner.stats=null;
+  if(S.planner.pickMode===actualTarget)S.planner.pickMode=actualTarget==='from'?'to':null;
+  updatePlannerButton();
+  if(S.planner.from&&S.planner.to){
+    computePlannerRoute();
+  }else{
+    renderPlannerCard();
+  }
+}
+
+function setPlannerPointFromStop(target,stop){
+  if(!stop)return;
+  setPlannerPoint(target,stop.lon,stop.lat,{source:'stop',stopId:stop.stop_id,stopName:stop.name});
+}
+
+function renderPlannerCard(){
+  const result=S.planner.result;
+  const error=S.planner.error;
+  const pickMode=S.planner.pickMode;
+  const cardClass='planner-card'+(!S.planner.from&&!S.planner.to&&!result?' is-empty':'');
+  const pointHtml=(target,badgeClass)=>{
+    const point=S.planner[target];
+    const pending=pickMode===target?' is-pending':'';
+    return `<button type="button" class="planner-point${pending}" onclick="setPlannerPickMode('${target}')"><div class="planner-point-badge ${badgeClass}">${target==='from'?'A':'B'}</div><div class="planner-point-copy"><div class="planner-point-label">${escHtml(t(target==='from'?'planner.pickFrom':'planner.pickTo'))}</div><div class="planner-point-value">${escHtml(point?plannerPointTitle(point):t('planner.pickHint'))}</div><div class="planner-point-meta">${escHtml(point?plannerPointMeta(point):(target==='from'?t('planner.pickStart'):t('planner.pickEnd')))}</div></div></button>`;
+    };
+  const statusHtml=error
+    ?`<div class="planner-status is-error">${escHtml(error)}</div>`
+    :(pickMode
+      ?`<div class="planner-status">${escHtml(t('planner.pickHint'))}</div>`
+      :'');
+  const summaryHtml=result?`<div class="planner-summary"><div class="planner-summary-item"><div class="planner-summary-label">${escHtml(t('planner.totalTime'))}</div><div class="planner-summary-value">${escHtml(formatPlannerDuration(result.totalTimeMin))}</div></div><div class="planner-summary-item"><div class="planner-summary-label">${escHtml(t('planner.transfers'))}</div><div class="planner-summary-value">${escHtml(String(result.transfers))}</div></div><div class="planner-summary-item"><div class="planner-summary-label">${escHtml(t('planner.walk'))}</div><div class="planner-summary-value">${escHtml(formatPlannerDuration(result.totalWalkMin))}</div></div></div>`:'';
+  const legsHtml=result?`<div class="planner-legs">${result.legs.map(leg=>{
+    if(leg.type==='walk'){
+      return `<div class="planner-leg"><div class="planner-leg-top"><div class="planner-leg-mode">${escHtml(t('planner.walk'))}</div><div class="planner-leg-time">${escHtml(formatPlannerDuration(leg.durationMin))}</div></div><div class="planner-leg-copy"><strong>${escHtml(leg.fromName||t('planner.pointOnMap'))}</strong> → <strong>${escHtml(leg.toName||t('planner.pointOnMap'))}</strong><br>${escHtml(formatPlannerDistance(leg.distanceMeters||0))}</div></div>`;
+    }
+    const waitCopy=leg.waitMin?`${t('planner.wait')} ${formatPlannerDuration(leg.waitMin)} · `:'';
+    const stopCount=leg.stopCount>1?` · ${leg.stopCount+0} перегонов`:'';
+    return `<div class="planner-leg"><div class="planner-leg-top"><div class="planner-leg-mode">${escHtml(t('planner.result'))}</div><div class="planner-leg-time">${escHtml(formatPlannerDuration(leg.durationMin))}</div></div><div class="planner-leg-route" style="background:${escHtml(leg.color||'#e84525')}">№ ${escHtml(leg.routeShort||leg.routeId||'—')}</div><div class="planner-leg-copy"><strong>${escHtml(leg.fromName)}</strong> → <strong>${escHtml(leg.toName)}</strong><br>${escHtml(waitCopy+(leg.headsign||'')+stopCount)}</div></div>`;
+  }).join('')}</div>`:`<div class="planner-empty">${escHtml((S.planner.from||S.planner.to)?t('planner.ready'):t('planner.noPoints'))}</div>`;
+  const pillText=result?`${result.transfers} · ${t('planner.transfers')}`:t('planner.title');
+  const pillClass='planner-pill'+(result&&result.transfers?' is-transfer':'');
+  const buildDisabled=!(S.planner.from&&S.planner.to&&S.plannerAdjacency.size);
+  const html=`<section class="${cardClass}"><div class="planner-head"><div><div class="planner-title">${escHtml(t('planner.title'))}</div><div class="planner-subtitle">${escHtml(t('planner.subtitle'))}</div></div><div class="${pillClass}">${escHtml(pillText)}</div></div><div class="planner-points">${pointHtml('from','from')}${pointHtml('to','to')}</div><div class="planner-actions"><button type="button" class="planner-action" onclick="usePlannerUserLocation()">${escHtml(t('planner.useMyLocation'))}</button><button type="button" class="planner-action" onclick="clearPlannerRoute()">${escHtml(t('planner.clear'))}</button><button type="button" class="planner-build-btn" onclick="computePlannerRoute()" ${buildDisabled?'disabled':''}>${escHtml(t('planner.build'))}</button></div>${statusHtml}${summaryHtml}${legsHtml}</section>`;
+  ['d-planner-card','m-planner-card'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.innerHTML=html;
+  });
+}
+
+function toggleRouteSelection(routeId){
+  if(!routeId||S.route)return;
+  const next=new Set(getSelectedRouteIds());
+  if(next.has(routeId)){
+    next.delete(routeId);
+    if(S.activeSelectedRouteId===routeId)S.activeSelectedRouteId=[...next].slice(-1)[0]||null;
+  }else{
+    next.add(routeId);
+    S.activeSelectedRouteId=routeId;
+    S.infoSlideIndex=0;
+    focusRoutePreview(routeId);
+  }
+  S.selectedRouteIds=next;
+  queueNearbyUpdate(false);
+  buildRoutesList();
+  renderSelectedRoutesCard();
+  closePopup();
+}
+
+function findFallbackStop(){
+  const names=[
+    'краевая больница',
+    'краевая больница 1',
+    'краевая больница 2'
+  ];
+  for(const stop of S.allStops||[]){
+    const n=normalizeName(stop.name);
+    if(names.some(x=>n.includes(x))) return stop;
+  }
+  return (S.allStops&&S.allStops[0])||null;
+}
+
+function showVehiclesOverview(reason){
+  if(S.route||!S.rtVehicles||!S.rtVehicles.length)return;
+  const pts=S.rtVehicles.map(v=>[v.lon,v.lat]);
+  if(S.userLocation&&S.userLocation.isFallback)pts.push([S.userLocation.lon,S.userLocation.lat]);
+  if(!pts.length)return;
+  const cx=pts.reduce((sum,p)=>sum+p[0],0)/pts.length;
+  const cy=pts.reduce((sum,p)=>sum+p[1],0)/pts.length;
+  S.didAutoFocusVehicles=true;
+  deckgl.setProps({initialViewState:{longitude:cx,latitude:cy,zoom:12.8,pitch:0,bearing:0,transitionDuration:900}});
+  setText('chip-txt',reason||'Показываю автобусы на карте');
+}
+
+function setUserLocationFromStop(stop, reason){
+  if(!stop)return;
+  S.userLocation={lon:stop.lon,lat:stop.lat,accuracy:0,isFallback:true,name:stop.name};
+  deckgl.setProps({initialViewState:{longitude:stop.lon,latitude:stop.lat,zoom:15.6,pitch:0,bearing:0,transitionDuration:850}});
+  queueNearbyUpdate(true);
+  setText('chip-txt',reason||('Показываю район остановки '+stop.name));
+  if(S.rtVehicles&&S.rtVehicles.length)showVehiclesOverview(reason||('Показываю автобусы рядом с остановкой '+stop.name));
+}
+
+function nearestTimestampOnPath(pathData,lon,lat){
+  if(!pathData||!pathData.path)return 0;
+  let best=0,bestD=Infinity;
+  for(let i=0;i<pathData.path.length;i++){
+    const p=pathData.path[i];
+    const d=(p[0]-lon)*(p[0]-lon)+(p[1]-lat)*(p[1]-lat);
+    if(d<bestD){bestD=d;best=pathData.timestamps[i]||0;}
+  }
+  return best;
+}
+
+function addPlannerEdge(adjacency, fromStopId, edge){
+  if(!adjacency.has(fromStopId))adjacency.set(fromStopId,[]);
+  adjacency.get(fromStopId).push(edge);
+}
+
+function walkMinutesForMeters(distanceMeters){
+  if(!Number.isFinite(distanceMeters)||distanceMeters<=0)return 0;
+  if(distanceMeters<=35)return 0;
+  return Math.max(1,Math.round((distanceMeters/PLANNER_WALK_SPEED_MPS)/60));
+}
+
+function buildPlannerAdjacency(stopById, stopTimesByTrip, tripMetaById, routeMetaById){
+  const adjacency=new Map();
+  const transitBest=new Map();
+  for(const [tripId,rows] of stopTimesByTrip){
+    const ordered=rows.slice().sort((a,b)=>(+a.stop_sequence)-(+b.stop_sequence));
+    const trip=tripMetaById.get(tripId);
+    const routeId=trip&&trip.route_id;
+    const route=routeId&&routeMetaById.get(routeId);
+    if(!routeId||ordered.length<2)continue;
+    for(let i=0;i<ordered.length-1;i++){
+      const fromRow=ordered[i];
+      const toRow=ordered[i+1];
+      const fromStop=stopById.get(fromRow.stop_id);
+      const toStop=stopById.get(toRow.stop_id);
+      if(!fromStop||!toStop)continue;
+      const departMin=parseTimeMin(fromRow.departure_time||fromRow.arrival_time);
+      const arriveMin=parseTimeMin(toRow.arrival_time||toRow.departure_time);
+      const durationMin=Math.max(1,Number.isFinite(arriveMin-departMin)?(arriveMin-departMin):2);
+      const edgeKey=[fromRow.stop_id,toRow.stop_id,routeId,trip&&trip.direction_id||'',trip&&trip.trip_headsign||''].join('|');
+      const candidate={
+        type:'transit',
+        fromStopId:fromRow.stop_id,
+        toStopId:toRow.stop_id,
+        fromName:fromStop.name,
+        toName:toStop.name,
+        routeId,
+        routeShort:route&&route.route_short_name||routeId,
+        headsign:trip&&trip.trip_headsign||'',
+        color:route&&route.hex||resolveRouteHex(route||{route_id:routeId}),
+        durationMin,
+        distanceMeters:haversineMeters(fromStop.lat,fromStop.lon,toStop.lat,toStop.lon),
+        path:[[fromStop.lon,fromStop.lat],[toStop.lon,toStop.lat]]
+      };
+      const existing=transitBest.get(edgeKey);
+      if(!existing||candidate.durationMin<existing.durationMin)transitBest.set(edgeKey,candidate);
+    }
+  }
+  for(const edge of transitBest.values())addPlannerEdge(adjacency,edge.fromStopId,edge);
+
+  const stops=[...stopById.values()];
+  for(let i=0;i<stops.length;i++){
+    const a=stops[i];
+    for(let j=i+1;j<stops.length;j++){
+      const b=stops[j];
+      const distanceMeters=haversineMeters(a.lat,a.lon,b.lat,b.lon);
+      const sameName=normalizeName(a.name)===normalizeName(b.name);
+      if(distanceMeters>PLANNER_TRANSFER_RADIUS_METERS && !(sameName&&distanceMeters<=PLANNER_TRANSFER_RADIUS_METERS*1.8))continue;
+      const durationMin=walkMinutesForMeters(distanceMeters);
+      addPlannerEdge(adjacency,a.stop_id,{
+        type:'walk',
+        fromStopId:a.stop_id,
+        toStopId:b.stop_id,
+        fromName:a.name,
+        toName:b.name,
+        durationMin,
+        distanceMeters,
+        path:[[a.lon,a.lat],[b.lon,b.lat]]
+      });
+      addPlannerEdge(adjacency,b.stop_id,{
+        type:'walk',
+        fromStopId:b.stop_id,
+        toStopId:a.stop_id,
+        fromName:b.name,
+        toName:a.name,
+        durationMin,
+        distanceMeters,
+        path:[[b.lon,b.lat],[a.lon,a.lat]]
+      });
+    }
+  }
+  return adjacency;
+}
+
+// ── ИНДЕКСАЦИЯ ДАННЫХ ─────────────────────────────────────
+// Строит все Map-индексы из распарсенных GTFS-файлов и сохраняет их в S
+function buildParsedIndexes(parsed){
+  const routeMetaById=new Map();
+  for(const route of (parsed.routesArr||[])){
+    const hex=resolveRouteHex(route);
+    routeMetaById.set(route.route_id,{...route,hex});
+  }
+
+  const allStops=(parsed.stopsArr||[]).map(row=>({
+    stop_id:row.stop_id,
+    name:row.stop_name||row.stop_id,
+    code:row.stop_code||'',
+    short_name:row.tts_stop_name||row.stop_code||'',
+    desc:row.stop_desc||'',
+    platform:row.platform_code||'',
+    wheelchair_boarding:row.wheelchair_boarding||'',
+    lon:+row.stop_lon,
+    lat:+row.stop_lat,
+    arrivals:[]
+  })).filter(stop=>Number.isFinite(stop.lon)&&Number.isFinite(stop.lat));
+  const stopById=new Map(allStops.map(stop=>[stop.stop_id,stop]));
+
+  const shapePointsById=new Map();
+  for(const row of (parsed.shapesArr||[])){
+    if(!shapePointsById.has(row.shape_id))shapePointsById.set(row.shape_id,[]);
+    const lon=+row.shape_pt_lon,lat=+row.shape_pt_lat;
+    if(Number.isFinite(lon)&&Number.isFinite(lat)){
+      shapePointsById.get(row.shape_id).push({seq:+row.shape_pt_sequence,point:[lon,lat]});
+    }
+  }
+  for(const [shapeId,points] of shapePointsById){
+    points.sort((a,b)=>a.seq-b.seq);
+    shapePointsById.set(shapeId,points.map(item=>item.point));
+  }
+
+  const tripToRoute=new Map();
+  const tripMetaById=new Map();
+  const firstTripByRoute=new Map();
+  for(const trip of (parsed.tripsArr||[])){
+    tripToRoute.set(trip.trip_id,trip.route_id);
+    tripMetaById.set(trip.trip_id,trip);
+    if(!firstTripByRoute.has(trip.route_id))firstTripByRoute.set(trip.route_id,trip);
+  }
+
+  const vehicleMetaById=new Map((parsed.vehiclesArr||[]).map(vehicle=>[vehicle.vehicle_id,vehicle]));
+  const vehicleAssignmentByTripId=new Map();
+  const vehicleAssignmentByRouteId=new Map();
+  for(const assignment of (parsed.vehicleTripsArr||[])){
+    if(assignment.trip_id&&!vehicleAssignmentByTripId.has(assignment.trip_id))vehicleAssignmentByTripId.set(assignment.trip_id,assignment);
+    if(assignment.route_id&&!vehicleAssignmentByRouteId.has(assignment.route_id))vehicleAssignmentByRouteId.set(assignment.route_id,assignment);
+  }
+
+  const frequencyRowsByTrip=new Map();
+  for(const row of (parsed.frequenciesArr||[])){
+    const startMin=parseTimeMin(row.start_time);
+    const endMin=parseTimeMin(row.end_time);
+    const headwaySec=Math.max(60,+row.headway_secs||0);
+    if(!row.trip_id||!Number.isFinite(startMin)||!Number.isFinite(endMin)||endMin<=startMin||!headwaySec)continue;
+    if(!frequencyRowsByTrip.has(row.trip_id))frequencyRowsByTrip.set(row.trip_id,[]);
+    frequencyRowsByTrip.get(row.trip_id).push({startMin,endMin,headwaySec});
+  }
+
+  const arrivalsByStopId=new Map();
+  const routeIdsByStopId=new Map();
+  const routeStopArrivalsById=new Map();
+  const firstTripStopsByRoute=new Map();
+  const stopTimesByTrip=new Map();
+
+  for(const row of (parsed.stopTimesArr||[])){
+    const routeId=tripToRoute.get(row.trip_id);
+    if(!routeId)continue;
+    const dep=row.departure_time||row.arrival_time;
+    if(!dep)continue;
+    const stopId=row.stop_id;
+    const routeMeta=routeMetaById.get(routeId);
+    const arrival={
+      tripId:row.trip_id,
+      time:dep,
+      mins:parseTimeMin(dep),
+      routeId,
+      routeShort:(routeMeta&&routeMeta.route_short_name)||routeId
+    };
+    if(!arrivalsByStopId.has(stopId))arrivalsByStopId.set(stopId,[]);
+    arrivalsByStopId.get(stopId).push(arrival);
+
+    let routeIds=routeIdsByStopId.get(stopId);
+    if(!routeIds){
+      routeIds=new Set();
+      routeIdsByStopId.set(stopId,routeIds);
+    }
+    routeIds.add(routeId);
+
+    let routeStopArrivals=routeStopArrivalsById.get(routeId);
+    if(!routeStopArrivals){
+      routeStopArrivals=new Map();
+      routeStopArrivalsById.set(routeId,routeStopArrivals);
+    }
+    if(!routeStopArrivals.has(stopId))routeStopArrivals.set(stopId,[]);
+    routeStopArrivals.get(stopId).push({tripId:row.trip_id,time:dep});
+
+    if(!stopTimesByTrip.has(row.trip_id))stopTimesByTrip.set(row.trip_id,[]);
+    stopTimesByTrip.get(row.trip_id).push(row);
+
+    const firstTrip=firstTripByRoute.get(routeId);
+    if(firstTrip&&row.trip_id===firstTrip.trip_id){
+      if(!firstTripStopsByRoute.has(routeId))firstTripStopsByRoute.set(routeId,[]);
+      firstTripStopsByRoute.get(routeId).push(row);
+    }
+  }
+
+  for(const rows of stopTimesByTrip.values())rows.sort((a,b)=>(+a.stop_sequence)-(+b.stop_sequence));
+
+  for(const arrivals of arrivalsByStopId.values())arrivals.sort((a,b)=>a.mins-b.mins);
+  for(const routeStopArrivals of routeStopArrivalsById.values()){
+    for(const arrivals of routeStopArrivals.values())arrivals.sort((a,b)=>a.time.localeCompare(b.time));
+  }
+
+  const routeContextById=new Map();
+  const routeAnimById=new Map();
+  for(const [routeId,routeMeta] of routeMetaById){
+    const firstTrip=firstTripByRoute.get(routeId)||null;
+    const shapePath=(firstTrip&&shapePointsById.get(firstTrip.shape_id))||[];
+    const simTrips=[];
+    for(const trip of (parsed.tripsArr||[]).filter(item=>item.route_id===routeId)){
+      const stopTimes=(stopTimesByTrip.get(trip.trip_id)||[]).slice().sort((a,b)=>(+a.stop_sequence)-(+b.stop_sequence));
+      if(stopTimes.length<2)continue;
+      const firstStop=stopTimes[0];
+      const lastStop=stopTimes[stopTimes.length-1];
+      const templateStartMin=parseTimeMin(firstStop.departure_time||firstStop.arrival_time);
+      const templateEndMin=parseTimeMin(lastStop.arrival_time||lastStop.departure_time);
+      if(!Number.isFinite(templateStartMin)||!Number.isFinite(templateEndMin)||templateEndMin<=templateStartMin)continue;
+      const durationMin=templateEndMin-templateStartMin;
+      const freqRows=frequencyRowsByTrip.get(trip.trip_id)||[];
+      if(freqRows.length){
+        for(const freq of freqRows){
+          let seq=0;
+          for(let dep=freq.startMin; dep<freq.endMin; dep+=freq.headwaySec/60){
+            simTrips.push({
+              tripId:trip.trip_id+':'+seq,
+              tripTemplateId:trip.trip_id,
+              headsign:trip.trip_headsign||'',
+              directionId:trip.direction_id||'',
+              startMin:dep,
+              endMin:dep+durationMin,
+              durationMin,
+              headwaySec:freq.headwaySec
+            });
+            seq++;
+          }
+        }
+      }else{
+        simTrips.push({
+          tripId:trip.trip_id,
+          tripTemplateId:trip.trip_id,
+          headsign:trip.trip_headsign||'',
+          directionId:trip.direction_id||'',
+          startMin:templateStartMin,
+          endMin:templateEndMin,
+          durationMin,
+          headwaySec:0
+        });
+      }
+    }
+    simTrips.sort((a,b)=>a.startMin-b.startMin);
+    const orderedStops=(firstTripStopsByRoute.get(routeId)||[]).slice().sort((a,b)=>(+a.stop_sequence)-(+b.stop_sequence)).map(st=>{
+      const stopInfo=stopById.get(st.stop_id);
+      return{
+        stop_id:st.stop_id,
+        name:stopInfo&&stopInfo.name||st.stop_id,
+        code:stopInfo&&stopInfo.code||'',
+        lon:+(stopInfo&&stopInfo.lon||0),
+        lat:+(stopInfo&&stopInfo.lat||0),
+        arrivals:(routeStopArrivalsById.get(routeId)&&routeStopArrivalsById.get(routeId).get(st.stop_id))||[]
+      };
+    }).filter(stop=>stop.lon&&stop.lat);
+    routeContextById.set(routeId,{route:routeMeta,firstTrip,shapePath,stops:orderedStops,simTrips});
+    if(shapePath.length>1)routeAnimById.set(routeId,buildTripsData(shapePath)[0]);
+  }
+
+  const calendarByServiceId=new Map();
+  for(const row of (parsed.calendarArr||[])){
+    if(row.service_id)calendarByServiceId.set(row.service_id,row);
+  }
+  const tripToService=new Map();
+  for(const trip of (parsed.tripsArr||[])){
+    if(trip.trip_id&&trip.service_id)tripToService.set(trip.trip_id,trip.service_id);
+  }
+
+  S.allStops=allStops;
+  S.tripToRoute=tripToRoute;
+  S.tripMetaById=tripMetaById;
+  S.routeMetaById=routeMetaById;
+  S.stopById=stopById;
+  S.shapePointsById=shapePointsById;
+  S.arrivalsByStopId=arrivalsByStopId;
+  S.routeIdsByStopId=routeIdsByStopId;
+  S.routeContextById=routeContextById;
+  S.routeAnimById=routeAnimById;
+  S.calendarByServiceId=calendarByServiceId;
+  S.tripToService=tripToService;
+  S.stopTimesByTrip=stopTimesByTrip;
+  S.plannerAdjacency=buildPlannerAdjacency(stopById,stopTimesByTrip,tripMetaById,routeMetaById);
+  S.vehicleMetaById=vehicleMetaById;
+  S.vehicleAssignmentByTripId=vehicleAssignmentByTripId;
+  S.vehicleAssignmentByRouteId=vehicleAssignmentByRouteId;
+}
+
+function formatPlannerDuration(value){
+  const rounded=Math.max(0,Math.round(value||0));
+  if(currentLang==='en')return rounded+' min';
+  if(currentLang==='zh' || currentLang==='ja')return rounded+' 分';
+  return rounded+' мин';
+}
+
+function formatPlannerDistance(distanceMeters){
+  const rounded=Math.max(0,Math.round(distanceMeters||0));
+  if(rounded>=1000)return (rounded/1000).toFixed(1)+' км';
+  return rounded+' м';
+}
+
+function plannerStateKey(nodeId,currentRouteId,lastTransitRouteId,lastEdgeType){
+  return [nodeId,currentRouteId||'',lastTransitRouteId||'',lastEdgeType||''].join('|');
+}
+
+function plannerStateScore(state){
+  return (state.totalMin||0)+(state.transfers||0)*10;
+}
+
+function isPlannerCostBetter(candidate,existing){
+  if(!existing)return true;
+  const candidateScore=plannerStateScore(candidate);
+  const existingScore=plannerStateScore(existing);
+  if(candidateScore!==existingScore)return candidateScore<existingScore;
+  if((candidate.transfers||0)!==(existing.transfers||0))return (candidate.transfers||0)<(existing.transfers||0);
+  if((candidate.totalMin||0)!==(existing.totalMin||0))return (candidate.totalMin||0)<(existing.totalMin||0);
+  return (candidate.walkMin||0)<(existing.walkMin||0);
+}
+
+function takeBestPlannerState(queue){
+  let bestIndex=0;
+  for(let i=1;i<queue.length;i++){
+    if(isPlannerCostBetter(queue[i],queue[bestIndex]))bestIndex=i;
+  }
+  return queue.splice(bestIndex,1)[0];
+}
+
+function getPlannerAccessStops(point,maxRadiusMeters=PLANNER_WALK_RADIUS_METERS){
+  if(!point||!S.allStops.length)return [];
+  const candidates=S.allStops.map(stop=>{
+    const distanceMeters=haversineMeters(point.lat,point.lon,stop.lat,stop.lon);
+    return {stopId:stop.stop_id,stop,distanceMeters,durationMin:walkMinutesForMeters(distanceMeters)};
+  }).sort((a,b)=>a.distanceMeters-b.distanceMeters);
+  const nearby=candidates.filter(item=>item.distanceMeters<=maxRadiusMeters).slice(0,8);
+  if(nearby.length)return nearby;
+  return candidates.slice(0,6).filter(item=>item.distanceMeters<=maxRadiusMeters*2.2);
+}
+
+function plannerPointTitle(point){
+  if(!point)return '—';
+  return point.stopName||t('planner.pointOnMap');
+}
+
+function plannerPointMeta(point){
+  if(!point)return '';
+  if(point.source==='user')return t('planner.fromMyLocation');
+  if(point.nearStopName){
+    const dist=point.nearDistanceMeters?(' · '+formatPlannerDistance(point.nearDistanceMeters)):'';
+    return t('planner.nearStop')+' '+point.nearStopName+dist;
+  }
+  return point.lat.toFixed(5)+', '+point.lon.toFixed(5);
+}
+
+function makePlannerPoint(lon,lat,meta={}){
+  const point={
+    lon,lat,
+    source:meta.source||'map',
+    stopId:meta.stopId||'',
+    stopName:meta.stopName||'',
+    label:meta.label||t('planner.pointOnMap'),
+    nearStopId:meta.stopId||'',
+    nearStopName:meta.stopName||'',
+    nearDistanceMeters:0
+  };
+  if(!point.stopId){
+    const nearest=getPlannerAccessStops({lon,lat},Math.min(PLANNER_TRANSFER_RADIUS_METERS,260))[0];
+    if(nearest){
+      point.nearStopId=nearest.stopId;
+      point.nearStopName=nearest.stop.name;
+      point.nearDistanceMeters=nearest.distanceMeters;
+    }
+  }
+  return point;
+}
+
+function appendPlannerPath(target, points){
+  if(!points||!points.length)return;
+  if(!target.path.length){
+    target.path=points.slice();
+    return;
+  }
+  const last=target.path[target.path.length-1];
+  const next=points[0];
+  const same=last&&next&&last[0]===next[0]&&last[1]===next[1];
+  target.path.push(...(same?points.slice(1):points));
+}
+
+function buildPlannerResult(finalState, states){
+  const edges=[];
+  let cursor=finalState;
+  while(cursor&&cursor.viaEdge){
+    edges.push(cursor.viaEdge);
+    cursor=cursor.prevKey?states.get(cursor.prevKey):null;
+  }
+  edges.reverse();
+  const legs=[];
+  for(const edge of edges){
+    if(!edge)continue;
+    const last=legs[legs.length-1];
+    if(edge.type==='walk'){
+      if(last&&last.type==='walk'){
+        last.durationMin+=edge.durationMin||0;
+        last.distanceMeters+=edge.distanceMeters||0;
+        last.toName=edge.toName||last.toName;
+        last.toStopId=edge.toStopId||last.toStopId;
+        appendPlannerPath(last,edge.path||[]);
+      }else{
+        legs.push({
+          type:'walk',
+          durationMin:edge.durationMin||0,
+          distanceMeters:edge.distanceMeters||0,
+          fromName:edge.fromName||'',
+          toName:edge.toName||'',
+          fromStopId:edge.fromStopId||'',
+          toStopId:edge.toStopId||'',
+          path:(edge.path||[]).slice()
+        });
+      }
+      continue;
+    }
+    if(last&&last.type==='transit'&&last.routeId===edge.routeId){
+      last.durationMin+=edge.durationMin||0;
+      last.waitMin+=edge.waitMin||0;
+      last.distanceMeters+=edge.distanceMeters||0;
+      last.toName=edge.toName||last.toName;
+      last.toStopId=edge.toStopId||last.toStopId;
+      last.stopCount+=1;
+      appendPlannerPath(last,edge.path||[]);
+    }else{
+      legs.push({
+        type:'transit',
+        routeId:edge.routeId,
+        routeShort:edge.routeShort||edge.routeId,
+        color:edge.color||'#e84525',
+        headsign:edge.headsign||'',
+        durationMin:edge.durationMin||0,
+        waitMin:edge.waitMin||0,
+        distanceMeters:edge.distanceMeters||0,
+        fromName:edge.fromName||'',
+        toName:edge.toName||'',
+        fromStopId:edge.fromStopId||'',
+        toStopId:edge.toStopId||'',
+        stopCount:1,
+        path:(edge.path||[]).slice()
+      });
+    }
+  }
+  return {
+    totalTimeMin:finalState.totalMin||0,
+    totalWalkMin:legs.filter(leg=>leg.type==='walk').reduce((sum,leg)=>sum+(leg.durationMin||0),0),
+    transfers:finalState.transfers||0,
+    legs
+  };
+}
+
+function computePlannerRoute(){
+  S.planner.result=null;
+  S.planner.error='';
+  S.planner.stats=null;
+  const from=S.planner.from;
+  const to=S.planner.to;
+  if(!from||!to){
+    S.planner.error=t('planner.ready');
+    renderPlannerCard();
+    return null;
+  }
+  if(!S.plannerAdjacency.size){
+    S.planner.error=t('planner.noRoute');
+    renderPlannerCard();
+    return null;
+  }
+
+  const startCandidates=getPlannerAccessStops(from);
+  const endCandidates=getPlannerAccessStops(to);
+  if(!startCandidates.length||!endCandidates.length){
+    S.planner.error=t('planner.noRoute');
+    renderPlannerCard();
+    return null;
+  }
+
+  const endByStopId=new Map();
+  for(const candidate of endCandidates){
+    const prev=endByStopId.get(candidate.stopId);
+    if(!prev||candidate.durationMin<prev.durationMin)endByStopId.set(candidate.stopId,candidate);
+  }
+
+  const queue=[];
+  const bestByKey=new Map();
+  const states=new Map();
+
+  for(const candidate of startCandidates){
+    const key=plannerStateKey(candidate.stopId,null,null,'walk');
+    const state={
+      key,
+      nodeId:candidate.stopId,
+      totalMin:candidate.durationMin,
+      walkMin:candidate.durationMin,
+      transfers:0,
+      currentRouteId:null,
+      lastTransitRouteId:null,
+      lastEdgeType:'walk',
+      usedTransit:false,
+      prevKey:null,
+      viaEdge:{
+        type:'walk',
+        fromName:plannerPointTitle(from),
+        toName:candidate.stop.name,
+        fromStopId:'__from__',
+        toStopId:candidate.stopId,
+        durationMin:candidate.durationMin,
+        distanceMeters:candidate.distanceMeters,
+        path:[[from.lon,from.lat],[candidate.stop.lon,candidate.stop.lat]]
+      }
+    };
+    const prev=bestByKey.get(key);
+    if(isPlannerCostBetter(state,prev)){
+      bestByKey.set(key,state);
+      states.set(key,state);
+      queue.push(state);
+    }
+  }
+
+  let bestFinal=null;
+  while(queue.length){
+    const state=takeBestPlannerState(queue);
+    if(bestByKey.get(state.key)!==state)continue;
+
+    const finish=endByStopId.get(state.nodeId);
+    if(finish&&state.usedTransit){
+      const finalKey=state.key+'|finish';
+      const finishState={
+        key:finalKey,
+        nodeId:'__to__',
+        totalMin:state.totalMin+finish.durationMin,
+        walkMin:state.walkMin+finish.durationMin,
+        transfers:state.transfers,
+        currentRouteId:null,
+        lastTransitRouteId:state.lastTransitRouteId,
+        lastEdgeType:'walk',
+        usedTransit:true,
+        prevKey:state.key,
+        viaEdge:{
+          type:'walk',
+          fromName:finish.stop.name,
+          toName:plannerPointTitle(to),
+          fromStopId:finish.stopId,
+          toStopId:'__to__',
+          durationMin:finish.durationMin,
+          distanceMeters:finish.distanceMeters,
+          path:[[finish.stop.lon,finish.stop.lat],[to.lon,to.lat]]
+        }
+      };
+      if(isPlannerCostBetter(finishState,bestFinal)){
+        bestFinal=finishState;
+        states.set(finalKey,finishState);
+      }
+    }
+
+    const edges=S.plannerAdjacency.get(state.nodeId)||[];
+    for(const edge of edges){
+      let nextState;
+      if(edge.type==='walk'){
+        nextState={
+          key:plannerStateKey(edge.toStopId,null,state.lastTransitRouteId,'walk'),
+          nodeId:edge.toStopId,
+          totalMin:state.totalMin+(edge.durationMin||0),
+          walkMin:state.walkMin+(edge.durationMin||0),
+          transfers:state.transfers,
+          currentRouteId:null,
+          lastTransitRouteId:state.lastTransitRouteId,
+          lastEdgeType:'walk',
+          usedTransit:state.usedTransit,
+          prevKey:state.key,
+          viaEdge:{...edge}
+        };
+      }else{
+        const sameTransit=state.lastEdgeType==='transit'&&state.currentRouteId===edge.routeId;
+        const transferInc=!sameTransit&&state.lastTransitRouteId&&state.lastTransitRouteId!==edge.routeId?1:0;
+        const waitMin=sameTransit?0:(state.lastTransitRouteId?PLANNER_TRANSFER_WAIT_MIN:PLANNER_INITIAL_WAIT_MIN);
+        nextState={
+          key:plannerStateKey(edge.toStopId,edge.routeId,edge.routeId,'transit'),
+          nodeId:edge.toStopId,
+          totalMin:state.totalMin+(edge.durationMin||0)+waitMin,
+          walkMin:state.walkMin,
+          transfers:state.transfers+transferInc,
+          currentRouteId:edge.routeId,
+          lastTransitRouteId:edge.routeId,
+          lastEdgeType:'transit',
+          usedTransit:true,
+          prevKey:state.key,
+          viaEdge:{...edge,durationMin:(edge.durationMin||0)+waitMin,waitMin}
+        };
+      }
+      const existing=bestByKey.get(nextState.key);
+      if(isPlannerCostBetter(nextState,existing)){
+        bestByKey.set(nextState.key,nextState);
+        states.set(nextState.key,nextState);
+        queue.push(nextState);
+      }
+    }
+  }
+
+  if(!bestFinal){
+    S.planner.error=t('planner.noRoute');
+    renderPlannerCard();
+    return null;
+  }
+
+  S.planner.result=buildPlannerResult(bestFinal,states);
+  S.planner.error='';
+  S.planner.stats={startCandidates:startCandidates.length,endCandidates:endCandidates.length};
+  S.planner.pickMode=null;
+  const plannerCoords=S.planner.result.legs.flatMap(leg=>leg.path||[]);
+  if(plannerCoords.length){
+    const lons=plannerCoords.map(point=>point[0]);
+    const lats=plannerCoords.map(point=>point[1]);
+    const span=Math.max((Math.max(...lons)-Math.min(...lons))*1.25,(Math.max(...lats)-Math.min(...lats))*1.25,0.01);
+    const zoom=span>0.25?11.4:span>0.12?12.2:span>0.05?13.2:14.2;
+    deckgl.setProps({initialViewState:{
+      longitude:(Math.min(...lons)+Math.max(...lons))/2,
+      latitude:(Math.min(...lats)+Math.max(...lats))/2,
+      zoom,pitch:0,bearing:0,transitionDuration:850
+    }});
+  }
+  updatePlannerButton();
+  renderPlannerCard();
+  return S.planner.result;
+}
+
+// ── СИМУЛЯЦИЯ ТРАНСПОРТА ──────────────────────────────────
+// Предвычисляет анимационные пути (pathData) для всех маршрутов
+function buildRouteAnimations(parsed){
+  const byRoute=new Map();
+  for(const [routeId,ctx] of S.routeContextById){
+    if(ctx.shapePath&&ctx.shapePath.length>1)byRoute.set(routeId,buildTripsData(ctx.shapePath)[0]);
+  }
+  S.routeAnimById=byRoute;
+}
+
+// Обновляет позиции и углы всех транспортных средств за прошедший кадр (deltaMs)
+function advanceVehicles(deltaMs){
+  if(!S.rtVehicles||!S.rtVehicles.length)return;
+  const motionEase=dampFactor(deltaMs,VEHICLE_MOTION_SMOOTHING_MS);
+  const bearingEase=dampFactor(deltaMs,VEHICLE_BEARING_SMOOTHING_MS);
+  for(const v of S.rtVehicles){
+    if(v.pathData){
+      const delta=deltaMs*clampAnimVelocity(Number.isFinite(v.animVelocity)?v.animVelocity:getFallbackAnimVelocity(v.routeId));
+      v.targetAnimTime=((Number.isFinite(v.targetAnimTime)?v.targetAnimTime:(v.animTime||0))+delta)%LOOP;
+      const animDelta=shortestLoopDelta(v.animTime||0,v.targetAnimTime||0,LOOP);
+      v.animTime=((v.animTime||0)+animDelta*motionEase+LOOP)%LOOP;
+      const pos=getPathPos(v.pathData,v.animTime);
+      if(!pos)continue;
+      v.lon=pos[0];
+      v.lat=pos[1];
+      const p1=v.pathData.path[pos[2]];
+      const p2=v.pathData.path[pos[3]];
+      const targetBearing=getBearing(p1,p2);
+      v.bearing=lerpAngle(Number.isFinite(v.bearing)?v.bearing:targetBearing,targetBearing,bearingEase);
+      continue;
+    }
+    if(Number.isFinite(v.targetLon)&&Number.isFinite(v.targetLat)){
+      v.lon=lerp(Number.isFinite(v.lon)?v.lon:v.targetLon,v.targetLon,motionEase);
+      v.lat=lerp(Number.isFinite(v.lat)?v.lat:v.targetLat,v.targetLat,motionEase);
+    }
+    if(Number.isFinite(v.targetBearing)){
+      v.bearing=lerpAngle(Number.isFinite(v.bearing)?v.bearing:v.targetBearing,v.targetBearing,bearingEase);
+    }
+  }
+}
+
+// Границы Камчатского края (с запасом)
+const KAMCHATKA_BOUNDS={latMin:50.8,latMax:60.5,lonMin:155.0,lonMax:167.0};
+const PKC={lon:158.700,lat:53.015};
+
+function isOnKamchatka(lat,lon){
+  return lat>=KAMCHATKA_BOUNDS.latMin&&lat<=KAMCHATKA_BOUNDS.latMax&&
+         lon>=KAMCHATKA_BOUNDS.lonMin&&lon<=KAMCHATKA_BOUNDS.lonMax;
+}
+
+function geolocateMe(){
+  const goToPKC=()=>{
+    deckgl.setProps({initialViewState:{longitude:PKC.lon,latitude:PKC.lat,zoom:12.5,pitch:0,bearing:0,transitionDuration:850}});
+    S.userLocation={lon:PKC.lon,lat:PKC.lat,accuracy:0,isFallback:true};
+    queueNearbyUpdate(true);
+    setText('chip-txt','Петропавловск-Камчатский');
+  };
+  if(!navigator.geolocation){goToPKC();return;}
+  setText('chip-txt','Определяю местоположение…');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const lon=pos.coords.longitude,lat=pos.coords.latitude;
+    if(!isOnKamchatka(lat,lon)){
+      // Пользователь вне Камчатки — показываем ПКЧ
+      goToPKC();
+      return;
+    }
+    S.userLocation={lon,lat,accuracy:pos.coords.accuracy||0};
+    deckgl.setProps({initialViewState:{longitude:lon,latitude:lat,zoom:15.8,pitch:0,bearing:0,transitionDuration:850}});
+    queueNearbyUpdate(true);
+    setText('chip-txt','Вы здесь');
+    if(S.userLocationWatchId==null){
+      S.userLocationWatchId=navigator.geolocation.watchPosition(w=>{
+        const wlon=w.coords.longitude,wlat=w.coords.latitude;
+        if(isOnKamchatka(wlat,wlon)){
+          S.userLocation={lon:wlon,lat:wlat,accuracy:w.coords.accuracy||0};
+          queueNearbyUpdate(false);
+        }
+      },()=>{
+        if(S.userLocation&&S.userLocation.isFallback) return;
+      },{enableHighAccuracy:true,maximumAge:10000,timeout:15000});
+    }
+  },err=>{
+    console.error(err);
+    goToPKC();
+  },{enableHighAccuracy:true,maximumAge:10000,timeout:15000});
+}
+
+function haversineMeters(lat1,lon1,lat2,lon2){
+  const R=6371000;
+  const dLat=(lat2-lat1)*Math.PI/180;
+  const dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+
+// Возвращает до 12 ближайших прибытий для остановки из предварительно построенного индекса
+function nearestArrivalForStop(stop){
+  return (S.arrivalsByStopId.get(stop.stop_id)||[]).slice(0,12);
+}
+
+function scheduleOverlayUpdate(){
+  if(S.overlayUpdateQueued)return;
+  S.overlayUpdateQueued=true;
+  requestAnimationFrame(()=>{
+    S.overlayUpdateQueued=false;
+    updateHtmlLabels();
+  });
+}
+
+function queueNearbyUpdate(centerMap){
+  S.nearbyUpdateCenter=S.nearbyUpdateCenter||!!centerMap;
+  if(S.nearbyUpdateQueued)return;
+  S.nearbyUpdateQueued=true;
+  requestAnimationFrame(()=>{
+    const shouldCenter=S.nearbyUpdateCenter;
+    S.nearbyUpdateQueued=false;
+    S.nearbyUpdateCenter=false;
+    updateNearbyContext(shouldCenter);
+    scheduleOverlayUpdate();
+  });
+}
+
+function getCurrentBBox(){
+  const vp=deckgl&&deckgl.getViewports&&deckgl.getViewports()[0];
+  if(!vp)return null;
+  const a=vp.unproject([0,0]);
+  const b=vp.unproject([window.innerWidth,window.innerHeight]);
+  if(!a||!b)return null;
+  return {minLon:Math.min(a[0],b[0]),maxLon:Math.max(a[0],b[0]),minLat:Math.min(a[1],b[1]),maxLat:Math.max(a[1],b[1])};
+}
+
+function stopInBBox(stop,b){
+  return stop.lon>=b.minLon && stop.lon<=b.maxLon && stop.lat>=b.minLat && stop.lat<=b.maxLat;
+}
+
+function setPanelMode(mode){
+  S.panelMode=(mode==='routes')?'routes':'stops';
+  document.querySelectorAll('.panel-tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.target===S.panelMode));
+  ['d','m'].forEach(p=>{
+    const sv=document.getElementById(p+'-stops-view');
+    const rv=document.getElementById(p+'-routes-view');
+    if(sv)sv.classList.toggle('active',S.panelMode==='stops');
+    if(rv)rv.classList.toggle('active',S.panelMode==='routes');
+  });
+  if(!S.route){
+    if(S.panelMode==='routes')queueNearbyUpdate(false);
+    buildRoutesList();
+    renderSelectedRoutesCard();
+  }
+}
+
+function routeIconSvg(){return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="10" height="8.5" rx="2.5"></rect><path d="M7 16.5h0"></path><path d="M12 16.5h0"></path><path d="M14 13c4.2 1.2 5.5 4.1 5.5 6.5"></path><path d="M14.5 10.5c2.6.1 4.9 1.1 6 3"></path></svg>`;}
+function stopIconSvg(){return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s5-5.2 5-9a5 5 0 1 0-10 0c0 3.8 5 9 5 9z"></path><circle cx="12" cy="11" r="1.8" fill="#111"></circle></svg>`;}
+function renderEmptyState(kind='stops'){
+  const targetIds=kind==='routes'?['d-rlist','m-rlist']:['d-slist','m-slist'];
+  const meta=kind==='routes'
+    ? {icon:routeIconSvg(),title:'Нет маршрутов',text:'В текущем окне карты маршруты не найдены.<small>Переместите карту или уменьшите масштаб.</small>'}
+    : {icon:stopIconSvg(),title:'Нет остановок',text:'В текущем окне карты остановки не найдены.<small>Переместите карту или уменьшите масштаб.</small>'};
+  targetIds.forEach(id=>{const box=document.getElementById(id); if(box) box.innerHTML=`<div class="empty-state"><div class="empty-state__icon">${meta.icon}</div><div class="empty-state__title">${meta.title}</div><div class="empty-state__text">${meta.text}</div></div>`;});
+}
+
+function buildRoutesList(){
+  ['d-rlist','m-rlist'].forEach(id=>{
+    const box=document.getElementById(id); if(!box) return;
+    box.innerHTML='';
+    if(S.route){ box.innerHTML=''; return; }
+    const routes=S.visibleRoutes||[];
+    if(!routes.length){ return; }
+    routes.forEach(r=>{
+      const selected=!!(S.selectedRouteIds&&S.selectedRouteIds.has(r.route_id));
+      const item=document.createElement('div'); item.className='route-list-item'+(selected?' is-selected':'');
+      const short=escHtml(r.route_short_name||r.route_id||'—');
+      const long=escHtml(r.route_long_name||'Без названия');
+      item.innerHTML=`<div class="route-list-pill" style="background:${escHtml(r.hex||resolveRouteHex(r))}">${short}</div><div class="route-list-main"><div class="route-list-name">${long}</div><div class="route-list-sub">${escHtml(routeTypeLabel(r.route_type))}</div></div><div class="route-list-indicator">${selected?'✓':'+'}</div>`;
+      item.addEventListener('click',()=>toggleRouteSelection(r.route_id));
+      box.appendChild(item);
+    });
+  });
+}
+
+function updateNearbyContext(centerMap){
+  if(!S.allStops.length)return;
+  const bbox=getCurrentBBox();
+  if(!bbox)return;
+  const centerLat=(bbox.minLat+bbox.maxLat)/2;
+  const centerLon=(bbox.minLon+bbox.maxLon)/2;
+  const dedup=new Map();
+  for(const stop of S.allStops){
+    if(!stopInBBox(stop,bbox)) continue;
+    const distance=haversineMeters(centerLat,centerLon,stop.lat,stop.lon);
+    const key=normalizeName(stop.name||stop.stop_id);
+    const candidate={...stop,distance,arrivals:nearestArrivalForStop(stop)};
+    const prev=dedup.get(key);
+    if(!prev || distance<prev.distance) dedup.set(key,candidate);
+  }
+  const visible=[...dedup.values()].sort((a,b)=>a.distance-b.distance).slice(0,24);
+  const selectedRouteIds=!S.route?getSelectedRouteIds():[];
+  const filteredVisible=selectedRouteIds.length?visible.filter(stop=>{
+    const stopRouteIds=S.routeIdsByStopId.get(stop.stop_id);
+    if(!stopRouteIds||!stopRouteIds.size)return false;
+    return selectedRouteIds.some(routeId=>stopRouteIds.has(routeId));
+  }):visible;
+  S.nearbyStops=filteredVisible;
+
+  const routeIds=new Set();
+  for(const stop of filteredVisible){
+    const stopRouteIds=S.routeIdsByStopId.get(stop.stop_id);
+    if(!stopRouteIds)continue;
+    for(const routeId of stopRouteIds)routeIds.add(routeId);
+  }
+  S.visibleRoutes=[...(selectedRouteIds.length?selectedRouteIds.filter(routeId=>routeIds.has(routeId)):routeIds)].map(id=>S.routeMetaById.get(id)).filter(Boolean).sort((a,b)=>String(a.route_short_name||a.route_id).localeCompare(String(b.route_short_name||b.route_id),undefined,{numeric:true}));
+  if(!S.route){
+    S.stops=filteredVisible;
+    buildStopList();
+    buildRoutesList();
+    buildHtmlLabels();
+    if(!filteredVisible.length) renderEmptyState('stops');
+    if(!S.visibleRoutes.length) renderEmptyState('routes');
+    renderSelectedRoutesCard();
+  }
+}
+
+// ── CSV PARSER ───────────────────────────────────────────────
+function csv(t){
+  if(!t||!t.trim())return[];
+  // Strip BOM if present
+  const clean=t.charCodeAt(0)===0xFEFF?t.slice(1):t;
+  return Papa.parse(clean.trim(),{header:true,skipEmptyLines:true,quoteChar:'"',delimiter:','}).data;
+}
+
+// ── GTFS FILE PARSERS ────────────────────────────────────────
+function parseGTFSFiles(files){
+  return{
+    routesArr:    csv(files['routes.txt']    ||''),
+    tripsArr:     csv(files['trips.txt']     ||''),
+    stopsArr:     csv(files['stops.txt']     ||''),
+    shapesArr:    csv(files['shapes.txt']    ||''),
+    stopTimesArr: csv(files['stop_times.txt']||''),
+    frequenciesArr: csv(files['frequencies.txt']||''),
+    vehiclesArr: csv(files['vehicles.txt']||''),
+    vehicleTripsArr: csv(files['vehicle_trips.txt']||''),
+    calendarArr: csv(files['calendar.txt']||''),
+  };
+}
+
+// Load from ./gtfs/ folder
+async function loadFilesFromFolder(onProg){
+  const required=['routes.txt','trips.txt','stops.txt','shapes.txt','stop_times.txt'];
+  const optional=['frequencies.txt','vehicles.txt','vehicle_trips.txt','calendar.txt'];
+  const FILES=[...required,...optional];
+  const files={};
+  for(let i=0;i<FILES.length;i++){
+    onProg&&onProg(Math.round(10+(i/FILES.length)*75),'Загрузка '+FILES[i]+'…');
+    const r=await fetch('./gtfs/'+FILES[i]);
+    if(!r.ok){
+      if(required.includes(FILES[i]))throw new Error('Не удалось загрузить gtfs/'+FILES[i]+' (HTTP '+r.status+')');
+      continue;
+    }
+    files[FILES[i]]=await r.text();
+  }
+  onProg&&onProg(100,'Готово!');
+  return files;
+}
+
+// Parse from ArrayBuffer (zip)
+async function loadFilesFromZip(source,onProg){
+  onProg&&onProg(15,'Распаковка ZIP-архива…');
+  const zip=await JSZip.loadAsync(source);
+  onProg&&onProg(45,'Чтение файлов…');
+  const needed=['routes.txt','trips.txt','stops.txt','shapes.txt','stop_times.txt','frequencies.txt','vehicles.txt','vehicle_trips.txt','calendar.txt'];
+  const files={};
+  for(const name of needed){
+    const entry=zip.file(name);
+    if(entry){files[name]=await entry.async('string');}
+  }
+  if(!files['routes.txt'])throw new Error('Файл routes.txt не найден в архиве. Убедитесь, что это GTFS-архив.');
+  onProg&&onProg(100,'Готово!');
+  return files;
+}
+
+// Fetch zip from URL and parse
+async function loadFilesFromUrl(url,onProg){
+  onProg&&onProg(5,'Соединение с сервером…');
+  let r;
+  try{r=await fetch(url);}catch(e){throw new Error('Сетевая ошибка: '+e.message+'. Проверьте URL и CORS на сервере.');}
+  if(!r.ok)throw new Error('Сервер вернул ошибку HTTP '+r.status);
+  onProg&&onProg(35,'Загрузка данных…');
+  const buf=await r.arrayBuffer();
+  onProg&&onProg(60,'Обработка ZIP…');
+  const files=await loadFilesFromZip(buf,(p,t)=>onProg&&onProg(60+p*.38,t));
+  return files;
+}
+
+// ── SOURCE MODAL LOGIC ───────────────────────────────────────
+let smCurrentTab=0;
+
+function showSourceModal(){
+  document.getElementById('source-modal').style.display='flex';
+  document.getElementById('route-modal').style.display='none';
+}
+
+function backToSources(){
+  document.getElementById('route-modal').style.display='none';
+  document.getElementById('source-modal').style.display='flex';
+}
+
+function smTab(idx){
+  smCurrentTab=idx;
+  document.querySelectorAll('.sm-tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  ['sm-pane-0','sm-pane-1','sm-pane-2'].forEach((id,i)=>{
+    document.getElementById(id).classList.toggle('active',i===idx);
+  });
+}
+
+function smProg(type,pct,txt){
+  const prog=document.getElementById('sm-prog-'+type);
+  if(!prog)return;
+  prog.classList.add('show');
+  if(txt)document.getElementById('sm-prog-'+type+'-txt').textContent=txt;
+  document.getElementById('sm-prog-'+type+'-fill').style.width=pct+'%';
+}
+function smProgHide(type){
+  const el=document.getElementById('sm-prog-'+type);
+  if(el)el.classList.remove('show');
+}
+function smErrShow(type,msg){
+  const el=document.getElementById('sm-err-'+type);
+  if(!el)return;
+  el.textContent=msg;
+  el.classList.add('show');
+}
+function smErrHide(type){
+  const el=document.getElementById('sm-err-'+type);
+  if(el)el.classList.remove('show');
+}
+
+// Cloud URL handler
+async function loadFromUrlUI(){
+  const url=document.getElementById('sm-url').value.trim();
+  if(!url){smErrShow('cloud','Введите URL GTFS-архива');return;}
+  const btn=document.getElementById('sm-url-btn');
+  btn.disabled=true;
+  smErrHide('cloud');
+  try{
+    const files=await loadFilesFromUrl(url,(p,t)=>smProg('cloud',p,t));
+    smProgHide('cloud');
+    await onFilesReady(files);
+  }catch(e){
+    smProgHide('cloud');
+    smErrShow('cloud','❌ '+e.message);
+  }finally{btn.disabled=false;}
+}
+
+// ZIP file handler
+async function loadFromZipFile(file){
+  smErrHide('zip');
+  try{
+    smProg('zip',5,'Чтение файла…');
+    const buf=await file.arrayBuffer();
+    const files=await loadFilesFromZip(buf,(p,t)=>smProg('zip',p,t));
+    smProgHide('zip');
+    await onFilesReady(files);
+  }catch(e){
+    smProgHide('zip');
+    smErrShow('zip','❌ '+e.message);
+  }
+}
+
+// Folder handler
+async function loadFromFolderUI(){
+  smErrHide('folder');
+  try{
+    const files=await loadFilesFromFolder((p,t)=>smProg('folder',p,t));
+    smProgHide('folder');
+    await onFilesReady(files);
+  }catch(e){
+    smProgHide('folder');
+    smErrShow('folder','❌ '+e.message);
+  }
+}
+
+
+// ── FILES READY → PARSE → ROUTE PICKER ──────────────────────
+async function onFilesReady(files){
+  const srcModal=document.getElementById('source-modal');
+  if(srcModal)srcModal.style.display='none';
+
+  // Show loading screen for parsing
+  showLoading('Парсинг данных…',20);
+  await new Promise(r=>setTimeout(r,0));// yield to browser
+
+  let parsed;
+  try{parsed=parseGTFSFiles(files);}catch(e){
+    hideLoading();
+    const errEl=document.getElementById('splash-ld-err');
+    if(errEl){errEl.textContent='❌ Ошибка парсинга: '+e.message;errEl.classList.add('show');}
+    const retryBtn=document.getElementById('splash-retry');if(retryBtn)retryBtn.classList.add('show');
+    return;
+  }
+
+  S.parsed=parsed;
+  S.allRoutes=parsed.routesArr;
+  buildParsedIndexes(parsed);
+  hideLoading();
+
+  if(!parsed.routesArr.length){
+    const errEl=document.getElementById('splash-ld-err');
+    if(errEl){errEl.textContent='❌ Файл routes.txt пустой или не содержит маршрутов';errEl.classList.add('show');}
+    const retryBtn=document.getElementById('splash-retry');if(retryBtn)retryBtn.classList.add('show');
+    return;
+  }
+
+  setText('d-rname','Определяю ваше местоположение');
+  setText('m-rname','Определяю ваше местоположение');
+  setText('d-rmeta',parsed.routesArr.length+' маршрутов · '+S.allStops.length+' остановок');
+  setText('m-rmeta',parsed.routesArr.length+' маршрутов · '+S.allStops.length+' остановок');
+  setText('d-rnum','');
+  setText('m-rnum','');
+  S.selectedRouteIds=new Set();
+  S.activeSelectedRouteId=null;
+  S.visibleRoutes=[];
+  S.infoSlideIndex=0;
+  S.route=null; S.shapePath=[]; S.tripsData=null; S.stops=[]; S.selectedVehicleId=null;
+  S.planner.from=null; S.planner.to=null; S.planner.pickMode=null; S.planner.result=null; S.planner.error=''; S.planner.stats=null;
+  updatePlannerButton();
+  startRealtime();
+  geolocateMe();
+  buildStopList();
+  buildHtmlLabels();
+  renderSelectedRoutesCard();
+  renderPlannerCard();
+}
+
+// ── ROUTE MODAL ──────────────────────────────────────────────
+let allRoutesCache=[];
+
+function showRouteModal(routes){
+  // Sort by route_short_name numerically then alpha
+  allRoutesCache=[...routes].sort((a,b)=>{
+    const an=parseInt(a.route_short_name)||Infinity;
+    const bn=parseInt(b.route_short_name)||Infinity;
+    if(an!==bn)return an-bn;
+    return(a.route_short_name||'').localeCompare(b.route_short_name||'','ru');
+  });
+
+  const agencyCount=new Set(routes.map(r=>r.agency_id)).size;
+  document.getElementById('rm-subtitle').textContent=routes.length+' маршрутов'+(agencyCount>1?', '+agencyCount+' операторов':'');
+  document.getElementById('rm-search').value='';
+  renderRouteList(allRoutesCache);
+  document.getElementById('route-modal').style.display='flex';
+}
+
+function renderRouteList(routes){
+  const list=document.getElementById('rm-list');
+  list.innerHTML='';
+  document.getElementById('rm-count').textContent=routes.length+' маршрутов';
+
+  if(!routes.length){
+    list.innerHTML='<div class="rm-empty">Ничего не найдено</div>';
+    return;
+  }
+
+  routes.forEach(r=>{
+    const meta=S.routeMetaById.get(r.route_id)||r;
+    const hex=(meta&&meta.hex)||resolveRouteHex(r);
+    const item=document.createElement('div');
+    item.className='rm-item';
+    item.innerHTML=`
+      <div class="rm-badge" style="background:${hex}">🚌 ${escHtml(r.route_short_name||r.route_id)}</div>
+      <div class="rm-info">
+        <div class="rm-short">${escHtml(r.route_short_name||r.route_id)}</div>
+        <div class="rm-long">${escHtml(r.route_long_name||'Маршрут '+r.route_id)}</div>
+      </div>
+      <div class="rm-arrow">›</div>
+    `;
+    item.addEventListener('click',()=>{
+      document.getElementById('route-modal').style.display='none';
+      setupAndShowRoute(r.route_id);
+    });
+    list.appendChild(item);
+  });
+}
+
+// ── ПОИСК ─────────────────────────────────────────────────
+function matchesQuery(text, words){
+  const t=text.toLowerCase();
+  return words.every(w=>t.includes(w));
+}
+function filterRoutes(q){
+  const lq=q.toLowerCase().trim();
+  if(!lq){renderRouteList(allRoutesCache);return;}
+  const words=lq.split(/\s+/).filter(Boolean);
+  const haystack=r=>(r.route_short_name||'')+' '+(r.route_long_name||'')+' '+(r.route_id||'');
+  const filtered=allRoutesCache.filter(r=>matchesQuery(haystack(r),words));
+  renderRouteList(filtered);
+}
+function filterStops(q){
+  const lq=q.toLowerCase().trim();
+  const words=lq.split(/\s+/).filter(Boolean);
+  ['d-slist','m-slist'].forEach(id=>{
+    const ul=document.getElementById(id);if(!ul)return;
+    ul.innerHTML='';
+    const source=S.allStops&&S.allStops.length?S.allStops:S.stops;
+    const list=lq?source.filter(s=>matchesQuery(s.name||'',words)):source;
+    if(!list.length){ul.innerHTML='<div class="route-list-empty">Ничего не найдено</div>';return;}
+    list.slice(0,60).forEach(s=>{
+      const li=document.createElement('div');li.className='si';
+      li.innerHTML='<div class="sd">⬤</div><div class="si-info" style="cursor:pointer" onclick="openPopupForStop(\''+s.stop_id+'\')"><div class="si-name">'+escHtml(s.name)+'</div><div class="si-sub">'+(s.short_name||s.stop_id||'')+'</div></div>';
+      ul.appendChild(li);
+    });
+  });
+}
+
+// ── SETUP ROUTE & SHOW MAP ───────────────────────────────────
+let rtPollInterval=null;
+let rtWs=null;
+let rtWsReconnectTimer=null;
+let rtHttpFallbackTimer=null;
+let rtWsOpenedAt=0;
+let rtLiveVehicleMap=new Map();
+
+async function setupAndShowRoute(routeId){
+  showLoading('Загрузка маршрута…',10);
+  const{routesArr}=S.parsed;
+  const ctx=S.routeContextById.get(routeId)||null;
+
+  // Route info
+  const route=(ctx&&ctx.route)||S.routeMetaById.get(routeId)||routesArr.find(r=>r.route_id===routeId)||routesArr[0];
+  const hex=(route&&route.hex)||(route&&route.route_color?'#'+route.route_color.replace(/^#/,''):'#e84525');
+  S.route={id:route.route_id,shortName:route.route_short_name||route.route_id,longName:route.route_long_name||'',color:hexRgb(hex),hex};
+  S.selectedRouteIds=new Set([routeId]);
+  S.activeSelectedRouteId=routeId;
+  S.infoSlideIndex=0;
+
+  ldProg(30,'Построение маршрута…');
+
+  // Build shape path
+  S.shapePath=(ctx&&ctx.shapePath&&ctx.shapePath.length)?ctx.shapePath.slice():[];
+  if(S.shapePath.length<2)S.shapePath=[[37.6558,55.7128],[37.6560,55.7052]];
+  S.tripsData=buildTripsData(S.shapePath);
+  S.currentTime=0;
+
+  ldProg(55,'Загрузка остановок…');
+
+  // Build stops
+  S.stops=(ctx&&ctx.stops&&ctx.stops.length?ctx.stops:[]).map(stop=>({...stop}));
+
+  ldProg(80,'Обновление интерфейса…');
+
+  // Update UI panels
+  const meta='Параметры маршрута';
+  ['d-badge','m-badge'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.style.background=S.route.hex;
+    const sp=el.querySelector('span');
+    if(sp)sp.textContent=S.route.shortName;
+  });
+  setText('d-rnum',S.route.shortName);setText('m-rnum',S.route.shortName);
+  setText('d-rname',S.route.longName||S.route.shortName);setText('m-rname',S.route.longName||S.route.shortName);
+  setText('d-rmeta',meta);setText('m-rmeta',meta);
+  document.title=S.route.shortName+' · '+(S.route.longName||'Камчатка.Транспорт');
+
+  renderRouteParams(route);
+  buildStopList();
+  buildHtmlLabels();
+  initBusPin();
+
+  // Center map on route
+  if(S.shapePath.length>0){
+    const cx=S.shapePath.reduce((s,p)=>s+p[0],0)/S.shapePath.length;
+    const cy=S.shapePath.reduce((s,p)=>s+p[1],0)/S.shapePath.length;
+    deckgl.setProps({initialViewState:{longitude:cx,latitude:cy,zoom:13.5,pitch:0,bearing:0,transitionDuration:900}});
+  }
+
+  ldProg(100,'Готово!');
+  setTimeout(hideLoading,350);
+
+  startRealtime();
+}
+
+// ── GTFS-RT ──────────────────────────────────────────────────
+function getRtHttpUrl(){
+  try{
+    const qp=new URLSearchParams(location.search);
+    return qp.get('rthttp')||localStorage.getItem('rt-http-url')||'./gtfs-rt/vehicle_positions.json';
+  }catch(_){
+    return './gtfs-rt/vehicle_positions.json';
+  }
+}
+
+function getRtWsUrl(){
+  try{
+    const qp=new URLSearchParams(location.search);
+    const explicit=qp.get('rtws')||localStorage.getItem('rt-ws-url');
+    if(explicit)return explicit;
+    const proto=location.protocol==='https:'?'wss:':'ws:';
+    if(!location.host)return '';
+    return proto+'//'+location.host+'/transit/ws?city=pk&version=1';
+  }catch(_){
+    return '';
+  }
+}
+
+function updateRealtimeBar(label){
+  const bar=document.getElementById('rtbar');
+  const msg=document.getElementById('rtmsg');
+  if(!bar||!msg)return;
+  bar.classList.add('show');
+  const count=S.rtVehicles&&S.rtVehicles.length||0;
+  const time=new Date().toLocaleTimeString('ru');
+  msg.textContent=label+' · '+count+' ТС · '+time;
+}
+
+function buildRtVehicle(rec, prev, nowTs){
+  const routeId=rec.routeId||rec.route_id||'';
+  const pathData=S.routeAnimById.get(routeId)||null;
+  const baseLon=+rec.lon;
+  const baseLat=+rec.lat;
+  const targetBearing=Number.isFinite(+rec.bearing)?+rec.bearing:(prev&&prev.targetBearing);
+  const snappedAnimTime=Number.isFinite(+rec.animTime)
+    ? +rec.animTime
+    : (pathData?nearestTimestampOnPath(pathData,baseLon,baseLat):(prev&&Number.isFinite(prev.targetAnimTime)?prev.targetAnimTime:0));
+  let desiredAnimTime=snappedAnimTime;
+  let animVelocity=clampAnimVelocity(Number.isFinite(+rec.animVelocity)?+rec.animVelocity:(prev&&prev.animVelocity)||getFallbackAnimVelocity(routeId));
+  if(pathData&&prev&&prev.pathData===pathData&&Number.isFinite(prev.targetAnimTime)){
+    const correction=shortestLoopDelta(prev.targetAnimTime,snappedAnimTime,LOOP);
+    desiredAnimTime=(prev.targetAnimTime+correction*0.22+LOOP)%LOOP;
+    const elapsed=Math.max(250,(nowTs||performance.now())-(prev.lastFeedTs||(nowTs||performance.now())-1000));
+    const observedVelocity=Math.abs(correction)/elapsed;
+    if(Number.isFinite(observedVelocity)&&observedVelocity>0){
+      animVelocity=clampAnimVelocity(animVelocity*0.82+observedVelocity*0.18);
+    }
+  }
+  const routeMeta=S.routeMetaById.get(routeId);
+  const v={
+    id:rec.id,
+    label:rec.label||((routeMeta&&routeMeta.route_short_name)||routeId||'?'),
+    lat:prev&&Number.isFinite(prev.lat)?prev.lat:baseLat,
+    lon:prev&&Number.isFinite(prev.lon)?prev.lon:baseLon,
+    routeId,
+    tripId:rec.tripId||'',
+    pathData,
+    animTime:(prev&&prev.pathData===pathData&&Number.isFinite(prev.animTime))?prev.animTime:desiredAnimTime,
+    targetAnimTime:desiredAnimTime,
+    animVelocity,
+    bearing:Number.isFinite(prev&&prev.bearing)?prev.bearing:(Number.isFinite(targetBearing)?targetBearing:0),
+    targetBearing:Number.isFinite(targetBearing)?targetBearing:null,
+    targetLon:baseLon,
+    targetLat:baseLat,
+    lastFeedTs:nowTs||performance.now(),
+    source:rec.source||''
+  };
+  if(pathData){
+    const pos=getPathPos(pathData,v.animTime);
+    if(pos){
+      if(!(prev&&Number.isFinite(prev.lon)&&Number.isFinite(prev.lat))){
+        v.lon=pos[0];
+        v.lat=pos[1];
+      }
+      const derivedBearing=getBearing(pathData.path[pos[2]],pathData.path[pos[3]]);
+      if(!Number.isFinite(v.bearing))v.bearing=derivedBearing;
+      if(!Number.isFinite(v.targetBearing))v.targetBearing=derivedBearing;
+    }
+  }
+  return v;
+}
+
+function setRtVehicles(records,label){
+  const prev=new Map((S.rtVehicles||[]).map(v=>[v.id,v]));
+  const nowTs=performance.now();
+  S.rtVehicles=records.map(rec=>buildRtVehicle(rec,prev.get(rec.id),nowTs)).filter(v=>Number.isFinite(v.lon)&&Number.isFinite(v.lat));
+  updateRealtimeBar(label);
+  renderInfoSlides();
+  if(!S.route&&!S.didAutoFocusVehicles&&S.rtVehicles.length&&(!S.userLocation||S.userLocation.isFallback)){
+    showVehiclesOverview('Показываю автобусы на карте');
+  }
+}
+
+function getCurrentServiceMinutes(){
+  const now=new Date();
+  let mins=now.getHours()*60+now.getMinutes()+now.getSeconds()/60;
+  if(now.getHours()<4)mins+=1440;
+  return mins;
+}
+
+// Генерирует офлайн-симуляционные ТС на основе расписания (GTFS calendar + stop_times)
+function buildOfflineSimVehicles(existingRouteCounts){
+  const routeCounts=existingRouteCounts instanceof Map?existingRouteCounts:new Map();
+  const records=[];
+  const nowMin=getCurrentServiceMinutes();
+  for(const [routeId,ctx] of S.routeContextById){
+    const pathData=S.routeAnimById.get(routeId)||null;
+    if(!pathData||!pathData.path||pathData.path.length<2)continue;
+    const route=ctx&&ctx.route||S.routeMetaById.get(routeId);
+    const targetCount=Math.max(0,TARGET_VEHICLES_PER_ROUTE-(routeCounts.get(routeId)||0));
+    if(!targetCount)continue;
+    const activeServices=getActiveServiceIds(S.scheduleDate||toGtfsDate(new Date()));
+    const activeTrips=(ctx&&ctx.simTrips||[]).filter(trip=>{
+      if(!(nowMin>=trip.startMin&&nowMin<=trip.endMin))return false;
+      const sid=S.tripToService&&S.tripToService.get(trip.tripTemplateId||trip.tripId.split(':')[0]);
+      return !sid||activeServices.has(sid);
+    }).slice(0,targetCount);
+    for(const simTrip of activeTrips){
+      const progress=Math.max(0,Math.min(1,(nowMin-simTrip.startMin)/Math.max(1/60,simTrip.durationMin)));
+      const animTime=progress*LOOP;
+      const pos=getPathPos(pathData,animTime);
+      if(!pos)continue;
+      records.push({
+        id:'sim:'+simTrip.tripId,
+        label:(route&&route.route_short_name)||routeId||'?',
+        routeId,
+        lon:pos[0],
+        lat:pos[1],
+        animTime,
+        animVelocity:LOOP/Math.max(simTrip.durationMin*60000,1000),
+        bearing:getBearing(pathData.path[pos[2]],pathData.path[pos[3]]),
+        source:'sim',
+        tripId:simTrip.tripId
+      });
+    }
+  }
+  return records;
+}
+
+// Останавливает RT-соединение и запускает симуляцию по расписанию с обновлением раз в минуту
+function enableOfflineSimulation(reason){
+  stopRealtime();
+  rtLiveVehicleMap.clear();
+  const label='Офлайн-симуляция'+(reason?(' · '+reason):'');
+  const sync=()=>setRtVehicles(buildOfflineSimVehicles(),label);
+  sync();
+  rtPollInterval=setInterval(sync,60000);
+}
+
+function parseSnapshotEntities(data){
+  return (data&&data.entity||[]).filter(e=>e.vehicle&&e.vehicle.position).map(e=>({
+    id:e.vehicle.vehicle&&e.vehicle.vehicle.id||e.id,
+    label:e.vehicle.vehicle&&e.vehicle.vehicle.label||'',
+    lon:e.vehicle.position.longitude,
+    lat:e.vehicle.position.latitude,
+    bearing:e.vehicle.position.bearing,
+    routeId:e.vehicle.trip&&e.vehicle.trip.routeId||'',
+    source:'http'
+  }));
+}
+
+async function loadRtHttpSnapshot(){
+  try{
+    const r=await fetch(getRtHttpUrl()+'?t='+Date.now(),{cache:'no-store'});
+    if(!r.ok)return false;
+    const data=await r.json();
+    const records=parseSnapshotEntities(data);
+    if(!records.length)return false;
+    const routeCounts=new Map();
+    records.forEach(rec=>routeCounts.set(rec.routeId,(routeCounts.get(rec.routeId)||0)+1));
+    const supplemented=records.concat(buildOfflineSimVehicles(routeCounts));
+    rtLiveVehicleMap=new Map();
+    supplemented.forEach(rec=>rtLiveVehicleMap.set(rec.id,rec));
+    setRtVehicles(supplemented,'Онлайн snapshot + график');
+    return true;
+  }catch(_){
+    return false;
+  }
+}
+
+function sendWsSubscription(){
+  if(!rtWs||rtWs.readyState!==WebSocket.OPEN)return;
+  try{
+    rtWs.send(JSON.stringify({
+      action:'subscribe',
+      routes:[...S.routeMetaById.keys()],
+      stops:[]
+    }));
+  }catch(_){}
+}
+
+function applyWsVehicleEvent(msg){
+  if(!msg||!Number.isFinite(+msg.lat)||!Number.isFinite(+msg.lon))return;
+  const rec={
+    id:msg.id,
+    label:msg.label||'',
+    lon:+msg.lon,
+    lat:+msg.lat,
+    bearing:msg.bearing,
+    routeId:msg.route_id||msg.routeId||'',
+    source:'ws'
+  };
+  rtLiveVehicleMap.set(rec.id,rec);
+  setRtVehicles([...rtLiveVehicleMap.values()],'Онлайн WebSocket');
+}
+
+function stopRealtime(closeSocket=true){
+  if(rtPollInterval){clearInterval(rtPollInterval);rtPollInterval=null;}
+  if(rtHttpFallbackTimer){clearTimeout(rtHttpFallbackTimer);rtHttpFallbackTimer=null;}
+  if(rtWsReconnectTimer){clearTimeout(rtWsReconnectTimer);rtWsReconnectTimer=null;}
+  if(closeSocket&&rtWs){
+    try{rtWs.close();}catch(_){}
+  }
+  rtWs=null;
+}
+
+function startHttpPolling(){
+  if(rtPollInterval)return;
+  const poll=async()=>{
+    const ok=await loadRtHttpSnapshot();
+    if(!ok&&(!S.rtVehicles||!S.rtVehicles.length))enableOfflineSimulation('нет live snapshot');
+  };
+  poll();
+  rtPollInterval=setInterval(poll,30000);
+}
+
+function scheduleRealtimeRetry(){
+  if(rtWsReconnectTimer||!navigator.onLine)return;
+  rtWsReconnectTimer=setTimeout(()=>{
+    rtWsReconnectTimer=null;
+    startRealtime();
+  },5000);
+}
+
+function connectRealtimeWs(){
+  return false; // WS temporarily disabled
+  const url=getRtWsUrl();
+  if(!url)return false;
+  try{
+    rtWs=new WebSocket(url);
+  }catch(_){
+    rtWs=null;
+    return false;
+  }
+  rtWsOpenedAt=Date.now();
+  updateRealtimeBar('Онлайн WS · подключение');
+  rtWs.addEventListener('open',()=>{
+    sendWsSubscription();
+  });
+  rtWs.addEventListener('message',event=>{
+    let msg;
+    try{msg=JSON.parse(event.data);}catch(_){return;}
+    if(msg&&msg.type==='connected'){
+      updateRealtimeBar('Онлайн WS · подключено');
+      return;
+    }
+    if(msg&&msg.type==='vehicle'){
+      if(rtHttpFallbackTimer){clearTimeout(rtHttpFallbackTimer);rtHttpFallbackTimer=null;}
+      if(rtPollInterval){clearInterval(rtPollInterval);rtPollInterval=null;}
+      applyWsVehicleEvent(msg);
+    }
+  });
+  rtWs.addEventListener('error',()=>{
+    try{rtWs&&rtWs.close();}catch(_){}
+  });
+  rtWs.addEventListener('close',()=>{
+    rtWs=null;
+    if(!navigator.onLine){
+      enableOfflineSimulation('нет сети');
+      return;
+    }
+    if(Date.now()-rtWsOpenedAt<1500)startHttpPolling();
+    scheduleRealtimeRetry();
+  });
+  return true;
+}
+
+function startRealtime(){
+  stopRealtime();
+  enableOfflineSimulation();
+}
+
+// ── DECK.GL ──────────────────────────────────────────────────
+const{Deck,TileLayer,BitmapLayer,PathLayer,ScatterplotLayer,TripsLayer,TextLayer}=deck;
+
+function buildRoutePreviewLayers(){
+  const hasSelectedRoutes=getSelectedRouteIds().length>0;
+  if(S.route||(!hasSelectedRoutes&&S.panelMode!=='routes'))return [];
+  const previewRouteIds=getVisibleRouteIdsForMap();
+  const previewData=getPreviewRouteData(previewRouteIds);
+  const selectedData=getPreviewRouteData(getSelectedRouteIds());
+  const sz=dynSizes();
+  const layers=[];
+  if(previewData.length){
+    layers.push(
+      new PathLayer({
+        id:'route-preview-thin',
+        data:previewData,
+        pickable:false,
+        getPath:d=>d.path,
+        getColor:d=>[d.color[0],d.color[1],d.color[2],118],
+        getWidth:2,
+        widthMinPixels:Math.max(2,Math.round(sz.lineW*0.45)),
+        rounded:true,
+        capRounded:true
+      })
+    );
+  }
+  if(selectedData.length){
+    layers.push(
+      new PathLayer({
+        id:'route-preview-selected-shadow',
+        data:selectedData,
+        pickable:false,
+        getPath:d=>d.path,
+        getColor:d=>[d.color[0],d.color[1],d.color[2],50],
+        getWidth:8,
+        widthMinPixels:Math.max(6,Math.round(sz.lineW*1.5)),
+        rounded:true,
+        capRounded:true
+      }),
+      new PathLayer({
+        id:'route-preview-selected',
+        data:selectedData,
+        pickable:false,
+        getPath:d=>d.path,
+        getColor:d=>[d.color[0],d.color[1],d.color[2],240],
+        getWidth:4,
+        widthMinPixels:Math.max(4,Math.round(sz.lineW)),
+        rounded:true,
+        capRounded:true
+      })
+    );
+  }
+  return layers;
+}
+
+function buildPlannerLayers(){
+  const layers=[];
+  const result=S.planner.result;
+  if(result&&result.legs&&result.legs.length){
+    const walkData=result.legs.filter(leg=>leg.type==='walk'&&leg.path&&leg.path.length>1).map((leg,index)=>({id:'walk-'+index,path:leg.path}));
+    const transitData=result.legs.filter(leg=>leg.type==='transit'&&leg.path&&leg.path.length>1).map((leg,index)=>({id:'transit-'+index,path:leg.path,color:hexRgb(leg.color||'#e84525')}));
+    if(walkData.length){
+      layers.push(
+        new PathLayer({
+          id:'planner-walk',
+          data:walkData,
+          pickable:false,
+          getPath:d=>d.path,
+          getColor:[37,99,235,150],
+          getWidth:3,
+          widthMinPixels:3,
+          rounded:true,
+          capRounded:true
+        })
+      );
+    }
+    if(transitData.length){
+      layers.push(
+        new PathLayer({
+          id:'planner-transit-shadow',
+          data:transitData,
+          pickable:false,
+          getPath:d=>d.path,
+          getColor:d=>[d.color[0],d.color[1],d.color[2],70],
+          getWidth:8,
+          widthMinPixels:7,
+          rounded:true,
+          capRounded:true
+        }),
+        new PathLayer({
+          id:'planner-transit',
+          data:transitData,
+          pickable:false,
+          getPath:d=>d.path,
+          getColor:d=>[d.color[0],d.color[1],d.color[2],245],
+          getWidth:4,
+          widthMinPixels:4,
+          rounded:true,
+          capRounded:true
+        })
+      );
+    }
+  }
+  const markerData=[];
+  if(S.planner.from)markerData.push({lon:S.planner.from.lon,lat:S.planner.from.lat,label:'A',color:[14,165,233]});
+  if(S.planner.to)markerData.push({lon:S.planner.to.lon,lat:S.planner.to.lat,label:'B',color:[239,68,68]});
+  if(markerData.length){
+    layers.push(
+      new ScatterplotLayer({id:'planner-marker-halo',data:markerData,pickable:false,getPosition:d=>[d.lon,d.lat],getRadius:1,radiusMinPixels:16,getFillColor:d=>[d.color[0],d.color[1],d.color[2],48],filled:true}),
+      new ScatterplotLayer({id:'planner-marker-dot',data:markerData,pickable:false,getPosition:d=>[d.lon,d.lat],getRadius:1,radiusMinPixels:10,getFillColor:d=>[d.color[0],d.color[1],d.color[2],255],getLineColor:[255,255,255,255],lineWidthMinPixels:3,stroked:true,filled:true}),
+      new TextLayer({id:'planner-marker-text',data:markerData,pickable:false,getPosition:d=>[d.lon,d.lat],getText:d=>d.label,getSize:18,sizeMinPixels:14,sizeMaxPixels:22,getColor:[255,255,255,255],getPixelOffset:[0,1],fontFamily:'Arial,sans-serif',fontWeight:'bold',billboard:true,getTextAnchor:'middle',getAlignmentBaseline:'center'})
+    );
+  }
+  return layers;
+}
+
+function buildLayers(){
+  const visibleVehicles=getVisibleVehiclesForMap();
+  if(!S.route||!S.tripsData){
+    const layers=[
+      new TileLayer({id:'base',data:getBasemapUrl(),minZoom:0,maxZoom:19,tileSize:256,renderSubLayers(p){const[[x0,y0],[x1,y1]]=p.tile.boundingBox;return new BitmapLayer(p,{data:null,image:p.data,bounds:[x0,y0,x1,y1]});}})
+    ];
+    layers.push(...buildRoutePreviewLayers());
+    if(visibleVehicles.length){
+      const F={fontFamily:'Arial,sans-serif',fontWeight:'bold',billboard:true,background:false,getTextAnchor:'middle',getAlignmentBaseline:'bottom'};
+      const routeRgb=v=>{const m=S.routeMetaById.get(v.routeId);const h=m&&m.hex||'#1e78d0';const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return[r,g,b];};
+      layers.push(
+        new ScatterplotLayer({id:'rt-over-halo',data:visibleVehicles,pickable:true,getPosition:d=>[d.lon,d.lat],getRadius:1,radiusMinPixels:13,getFillColor:d=>d.id===S.selectedVehicleId?[255,185,30,48]:[...routeRgb(d),30],getLineColor:d=>d.id===S.selectedVehicleId?[255,214,64,210]:[0,0,0,0],getLineWidth:d=>d.id===S.selectedVehicleId?4:0,filled:true,stroked:true}),
+        new ScatterplotLayer({id:'rt-over',data:visibleVehicles,pickable:true,getPosition:d=>[d.lon,d.lat],getRadius:1,radiusMinPixels:8,getFillColor:d=>d.id===S.selectedVehicleId?[245,170,10,255]:[...routeRgb(d),235],getLineColor:[255,255,255,255],lineWidthMinPixels:2.5,stroked:true,filled:true}),
+        new TextLayer({...F,id:'rt-over-badge',data:visibleVehicles,pickable:true,getPosition:d=>[d.lon,d.lat],getText:d=>d.label||'',getSize:13,getColor:[255,255,255,255],getPixelOffset:[0,-28],background:true,getBackgroundColor:d=>d.id===S.selectedVehicleId?[245,170,10,255]:[...routeRgb(d),240],backgroundPadding:[5,2,5,2],getBorderRadius:4,sizeMaxPixels:15,sizeMinPixels:10})
+      );
+    }
+    layers.push(...buildPlannerLayers());
+    if(S.userLocation){
+      layers.push(
+        new ScatterplotLayer({id:'user-halo',data:[S.userLocation],getPosition:d=>[d.lon,d.lat],getRadius:1,radiusMinPixels:18,getFillColor:[37,99,235,35],filled:true}),
+        new ScatterplotLayer({id:'user-dot',data:[S.userLocation],getPosition:d=>[d.lon,d.lat],getRadius:1,radiusMinPixels:8,getFillColor:[37,99,235,255],getLineColor:[255,255,255,255],lineWidthMinPixels:3,stroked:true,filled:true})
+      );
+    }
+    return layers;
+  }
+  const[r,g,b]=S.route.color;
+  const ct=((S.currentTime%LOOP)+LOOP)%LOOP;
+  const bp=busPos();
+  const sz=dynSizes();
+  const layers=[
+    new TileLayer({id:'base',data:getBasemapUrl(),minZoom:0,maxZoom:19,tileSize:256,renderSubLayers(p){const[[x0,y0],[x1,y1]]=p.tile.boundingBox;return new BitmapLayer(p,{data:null,image:p.data,bounds:[x0,y0,x1,y1]});}}),
+    new PathLayer({id:'rs',data:[{path:S.shapePath}],getPath:d=>d.path,getColor:[r,g,b,25],getWidth:8,widthMinPixels:Math.round(sz.lineW*1.4),rounded:true,capRounded:true}),
+    new PathLayer({id:'rl',data:[{path:S.shapePath}],getPath:d=>d.path,getColor:[r,g,b,230],getWidth:4,widthMinPixels:Math.round(sz.lineW),rounded:true,capRounded:true}),
+    new TripsLayer({id:'trips',data:S.tripsData,getPath:d=>d.path,getTimestamps:d=>d.timestamps,getColor:[r,g,b,255],currentTime:ct,trailLength:60,widthMinPixels:Math.round(sz.lineW),rounded:true,capRounded:true}),
+    new ScatterplotLayer({id:'bh',data:[{pos:bp}],getPosition:d=>d.pos,getRadius:1,radiusMinPixels:sz.busHaloR,getFillColor:[r,g,b,35],filled:true}),
+    new ScatterplotLayer({id:'bb',data:[{pos:bp}],getPosition:d=>d.pos,getRadius:1,radiusMinPixels:sz.busR,getFillColor:[r,g,b,255],getLineColor:[255,255,255,255],lineWidthMinPixels:2,stroked:true,filled:true}),
+  ];
+  layers.push(...buildPlannerLayers());
+  if(S.userLocation){
+    layers.push(
+      new ScatterplotLayer({id:'me-halo',data:[S.userLocation],getPosition:d=>[d.lon,d.lat],getRadius:1,radiusMinPixels:18,getFillColor:[37,99,235,42],filled:true}),
+      new ScatterplotLayer({id:'me-dot',data:[S.userLocation],getPosition:d=>[d.lon,d.lat],getRadius:1,radiusMinPixels:8,getFillColor:[37,99,235,230],getLineColor:[255,255,255,255],lineWidthMinPixels:3,stroked:true,filled:true})
+    );
+  }
+  if(visibleVehicles.length>0){
+    const F={fontFamily:'Arial,sans-serif',fontWeight:'bold',billboard:true,background:false,getTextAnchor:'middle',getAlignmentBaseline:'bottom'};
+    layers.push(
+      new ScatterplotLayer({id:'rth',data:visibleVehicles,pickable:true,getPosition:d=>[d.lon,d.lat],getRadius:1,getLineWidth:d=>d.id===S.selectedVehicleId?4:0,radiusMinPixels:d=>d.id===S.selectedVehicleId?sz.busHaloR+8:sz.busHaloR,getFillColor:d=>d.id===S.selectedVehicleId?[255,185,30,48]:[30,120,210,30],getLineColor:[255,214,64,210],filled:true,stroked:true}),
+      new ScatterplotLayer({id:'rtv',data:visibleVehicles,pickable:true,getPosition:d=>[d.lon,d.lat],getRadius:1,radiusMinPixels:d=>d.id===S.selectedVehicleId?sz.busR+2:sz.busR,getFillColor:d=>d.id===S.selectedVehicleId?[245,170,10,255]:[30,120,210,240],getLineColor:[255,255,255,255],lineWidthMinPixels:2.5,stroked:true,filled:true}),
+      new TextLayer({...F,id:'rt1',data:visibleVehicles,pickable:true,getPosition:d=>[d.lon,d.lat],getText:d=>d.label||'',getSize:19,getColor:[255,255,255,255],getPixelOffset:[-2,-24],sizeMaxPixels:22,sizeMinPixels:15}),
+      new TextLayer({...F,id:'rt2',data:visibleVehicles,pickable:true,getPosition:d=>[d.lon,d.lat],getText:d=>d.label||'',getSize:17,getColor:d=>d.id===S.selectedVehicleId?[245,170,10,255]:[30,120,210,255],getPixelOffset:[0,-24],sizeMaxPixels:20,sizeMinPixels:14})
+    );
+  }
+  return layers;
+}
+
+function getBasemapUrl(){
+  return document.documentElement.classList.contains('dark')
+    ?'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    :'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+}
+
+function normalizeBearing(value){
+  const bearing=Number.isFinite(value)?value:0;
+  return ((bearing%360)+360)%360;
+}
+
+function updateCompassButton(){
+  const btn=document.getElementById('compass-btn');
+  const needle=document.getElementById('compass-needle');
+  if(!btn||!needle)return;
+  const bearing=normalizeBearing(S.viewState&&S.viewState.bearing);
+  needle.style.transform='rotate('+(-bearing)+'deg)';
+  btn.classList.toggle('is-active',Math.abs(bearing)>1&&Math.abs(bearing-360)>1);
+}
+
+function resetCompassOrientation(animated=true){
+  const view=S.viewState||{};
+  const next={
+    longitude:Number.isFinite(view.longitude)?view.longitude:37.650,
+    latitude:Number.isFinite(view.latitude)?view.latitude:55.708,
+    zoom:Number.isFinite(view.zoom)?view.zoom:14.2,
+    pitch:0,
+    bearing:0,
+    transitionDuration:animated?650:0
+  };
+  S.viewState={...view,...next};
+  deckgl.setProps({initialViewState:next});
+  updateCompassButton();
+}
+
+function applyFirstOpenOrientation(){
+  const storageKey='kamchatka.transport.compass-init-v1';
+  if(localStorage.getItem(storageKey)){
+    updateCompassButton();
+    return;
+  }
+  localStorage.setItem(storageKey,'1');
+  resetCompassOrientation(false);
+  setText('chip-txt','Север сверху');
+}
+
+const deckgl=new Deck({
+  canvas:'canvas',width:'100%',height:'100%',
+  initialViewState:{longitude:158.700,latitude:53.015,zoom:12.5,pitch:0,bearing:0},
+  controller:true,layers:[],useDevicePixels:true,
+  onClick: info=>handleMapClick(info),
+  onDragStart:()=>{
+    closePopup();
+    if(S.followVehicleId){
+      S.followVehicleId=null;
+      setText('chip-txt','Режим слежения отключён');
+    }
+  },
+  onViewStateChange:({viewState})=>{
+    S.viewState={...viewState};
+    S.zoom=viewState.zoom;
+    updateCompassButton();
+    if(!S.route)queueNearbyUpdate(false);
+    scheduleOverlayUpdate();
+  }
+});
+
+window.addEventListener('resize',()=>{
+  if(!S.route)queueNearbyUpdate(false);
+  scheduleOverlayUpdate();
+});
+window.addEventListener('online',()=>startRealtime());
+window.addEventListener('offline',()=>enableOfflineSimulation('нет сети'));
+setTimeout(applyFirstOpenOrientation,0);
+
+function dynSizes(){
+  const z=S.zoom;
+  const lineW=Math.max(3,Math.min(10,2+(z-10)*0.9));
+  const busR=lineW+4;
+  const busHaloR=busR+6;
+  const stopR=lineW+2;
+  return{lineW,busR,busHaloR,stopR};
+}
+
+// ── HTML OVERLAYS ────────────────────────────────────────────
+const labelsContainer=document.getElementById('labels-container');
+let labelEls=[];
+
+function syncActiveStopPin(){
+  labelEls.forEach((el,i)=>{
+    const stop=S.stops&&S.stops[i];
+    el.classList.toggle('is-active',!!(stop&&S.activeStopId&&stop.stop_id===S.activeStopId));
+  });
+}
+
+function buildHtmlLabels(){
+  labelsContainer.innerHTML='';labelEls=[];
+  S.stops.forEach((s,i)=>{
+    const pin=document.createElement('div');
+    pin.className='stop-pin';
+    pin.setAttribute('tabindex','0');
+    pin.dataset.stopId=s.stop_id;
+    pin.innerHTML='<div class="stop-hover-card"><div class="stop-hover-card-title">'+escHtml(s.name)+'</div></div><div class="stop-pin-dot"></div>';
+    pin.addEventListener('click',()=>{
+      if(S.planner.pickMode){
+        setPlannerPointFromStop(S.planner.pickMode,s);
+        return;
+      }
+      openPopupByIndex(i);
+    });
+    labelsContainer.appendChild(pin);labelEls.push(pin);
+  });
+  syncActiveStopPin();
+  scheduleOverlayUpdate();
+}
+
+const busPinEl=document.getElementById('bus-pin');
+const busPinText=document.getElementById('bus-pin-text');
+
+function initBusPin(){
+  const hex=S.route&&S.route.hex||'#e84525';
+  busPinEl.style.setProperty('--pin-color',hex);
+  busPinText.textContent='№ '+(S.route&&S.route.shortName||'—');
+}
+
+function updateBusPin(){
+  if(!S.tripsData){busPinEl.style.display='none';return;}
+  const vp=deckgl.getViewports()[0];
+  if(!vp){busPinEl.style.display='none';return;}
+  const pos=busPos(),px=vp.project(pos);
+  if(!px){busPinEl.style.display='none';return;}
+  const x=px[0],y=px[1];
+  if(x<-60||x>window.innerWidth+60||y<-60||y>window.innerHeight+60){busPinEl.style.display='none';return;}
+  busPinEl.style.display='flex';busPinEl.style.left=x+'px';busPinEl.style.top=(y-13)+'px';
+}
+
+function updateHtmlLabels(){
+  if(!labelEls.length||!S.stops.length)return;
+  const vp=deckgl.getViewports()[0];if(!vp)return;
+  const{stopR}=dynSizes();
+  const dotPx=Math.round(stopR*2);
+  const halfDot=Math.round(stopR);
+  S.stops.forEach((s,i)=>{
+    const el=labelEls[i];if(!el)return;
+    const px=vp.project([s.lon,s.lat]);
+    if(!px){el.style.display='none';return;}
+    const x=px[0],y=px[1];
+    if(x<-160||x>window.innerWidth+160||y<-60||y>window.innerHeight+60){el.style.display='none';return;}
+    el.style.display='flex';
+    el.style.left=(x-halfDot-7)+'px';
+    el.style.top=y+'px';
+    const dot=el.querySelector('.stop-pin-dot');
+    if(dot){
+      dot.style.setProperty('--stop-dot-size',dotPx+'px');
+      dot.style.setProperty('--stop-dot-size-active',(dotPx+5)+'px');
+      dot.style.setProperty('--stop-dot-border',Math.max(2,Math.round(stopR*0.45))+'px');
+      dot.style.setProperty('--stop-dot-border-active',Math.max(4,Math.round(stopR*0.7))+'px');
+      dot.style.setProperty('--stop-dot-margin-left',(halfDot-1)+'px');
+      dot.style.marginLeft=(halfDot-1)+'px';
+    }
+    const card=el.querySelector('.stop-hover-card');
+    if(card)card.style.left=(dotPx+10)+'px';
+  });
+  syncActiveStopPin();
+}
+
+function handleMapClick(info){
+  if(S.planner.pickMode&&info&&info.coordinate){
+    const[lon,lat]=info.coordinate;
+    setPlannerPoint(S.planner.pickMode,lon,lat,{source:'map'});
+    return;
+  }
+  const obj=info&&info.object;
+  const lid=info&&info.layer&&info.layer.id||'';
+  if(!obj)return;
+  if(lid.startsWith('rt')){
+    focusVehicle(obj);
+    return;
+  }
+}
+
+function focusVehicle(v){
+  if(!v)return;
+  S.selectedVehicleId=v.id||null;
+  S.followVehicleId=null;
+  S.lastFollowTs=0;
+  closePopup();
+  const vp=deckgl&&deckgl.getViewports&&deckgl.getViewports()[0];
+  const px=vp?vp.project([v.lon,v.lat]):[160,240];
+  openVehiclePopup(v,px[0],px[1]);
+  setText('chip-txt','Выбрано ТС '+(v.label||''));
+}
+
+function followSelectedVehicle(force){
+  if(!S.followVehicleId)return;
+  const v=(S.rtVehicles||[]).find(x=>x.id===S.followVehicleId);
+  if(!v){S.followVehicleId=null;return;}
+  const now=performance.now();
+  if(!force && now-S.lastFollowTs<700)return;
+  S.lastFollowTs=now;
+  deckgl.setProps({initialViewState:{longitude:v.lon,latitude:v.lat,zoom:16.9,pitch:45,bearing:v.bearing||0,transitionDuration:650}});
+}
+
+// ── ANIMATION LOOP ───────────────────────────────────────────
+let lastTs=null;
+(function loop(ts){
+  let delta=0;
+  if(!S.paused){if(lastTs!==null){delta=(ts-lastTs);S.currentTime+=delta*0.12*S.animSpeed;}lastTs=ts;}else{lastTs=ts;}
+  if(delta>0)advanceVehicles(delta);
+  followSelectedVehicle(false);
+  deckgl.setProps({layers:buildLayers()});
+  if(S.tripsData) updateProgressUI();
+  updateBusPin();
+  requestAnimationFrame(loop);
+})(0);
+
+
+function routeTypeLabel(v){
+  const map={0:'Трамвай',1:'Метро',2:'Железная дорога',3:'Автобус',4:'Паром',5:'Канатная дорога',6:'Подвесной транспорт',7:'Фуникулёр',11:'Троллейбус',12:'Монорельс'};
+  return map[String(v)]||('Тип '+String(v||''));
+}
+
+function renderRouteParams(route){
+  renderInfoSlides();
+}
+
+function clearRouteParams(){renderInfoSlides();}
+
+// ── STOP LIST ────────────────────────────────────────────────
+function buildStopList(){
+  ['d-slist','m-slist'].forEach(id=>{
+    const ul=document.getElementById(id);if(!ul)return;
+    ul.innerHTML='';
+    if(!S.stops||!S.stops.length) return;
+    S.stops.forEach((s,i)=>{
+      const li=document.createElement('div');li.className='si';
+      const na=nextArrival(s);
+      const sub=na?('~'+Math.max(0,Math.round((s.distance||0)))+' м · '+na):('~'+Math.max(0,Math.round((s.distance||0)))+' м');
+      li.innerHTML='<div class="sd" id="'+id+'-dot-'+i+'">'+(i+1)+'</div><div class="si-info" onclick="openPopupByIndex('+i+')"><div class="si-name">'+escHtml(s.name)+'</div><div class="si-sub">'+sub+'</div></div>';
+      ul.appendChild(li);
+    });
+  });
+}
+
+function nextArrival(stop){
+  const nowM=new Date().getHours()*60+new Date().getMinutes();
+  for(const a of stop.arrivals){
+    if(parseTimeMin(a.time)>=nowM)return (a.routeShort?('№'+a.routeShort+' · '):'')+formatTime(a.time);
+  }
+  return stop.arrivals[0]&&stop.arrivals[0].time?((stop.arrivals[0].routeShort?('№'+stop.arrivals[0].routeShort+' · '):'')+formatTime(stop.arrivals[0].time)):null;
+}
+
+function updateProgressUI(){
+  const pct=((S.currentTime%LOOP)+LOOP)%LOOP/LOOP;
+  const n=S.stops.length,vidx=Math.floor(pct*(n-1)),nidx=Math.min(vidx+1,n-1);
+  const ps=Math.round(pct*100)+'%';
+  const nl=pct>=.99?'Конечная':S.stops[nidx]&&S.stops[nidx].name?'→ '+S.stops[nidx].name:'';
+  const dp=document.getElementById('d-pfill');if(dp)dp.style.width=ps;
+  const mp=document.getElementById('m-pfill');if(mp)mp.style.width=ps;
+  setText('d-pct',ps);setText('m-pct',ps);setText('d-next-lbl',nl);setText('m-next-lbl',nl);
+  ['d-slist','m-slist'].forEach(lid=>{
+    S.stops.forEach((_,i)=>{
+      const d=document.getElementById(lid+'-dot-'+i);if(!d)return;
+      d.classList.remove('v','n');
+      if(i<=vidx)d.classList.add('v');else if(i===nidx)d.classList.add('n');
+    });
+  });
+}
+
+// ── POPUP ────────────────────────────────────────────────────
+// Открывает попап транспортного средства с маршрутом и направлением рейса
+function openVehiclePopup(v,sx,sy){
+  if(!v)return;
+  const routeMeta=S.routeMetaById.get(v.routeId);
+  const tripMeta=v.tripId&&S.tripMetaById&&S.tripMetaById.get(v.tripId.split(':')[0])||null;
+  const badge=document.getElementById('vp-rbadge');
+  badge.textContent='🚌 '+(routeMeta&&routeMeta.route_short_name||v.routeId||'—');
+  badge.style.background=routeMeta&&routeMeta.hex||'#2563eb';
+  setText('vp-label',(routeMeta&&routeMeta.route_short_name?'Маршрут №'+routeMeta.route_short_name+' · ':'')+(v.label||v.id||'ТС'));
+  const dirEl=document.getElementById('vp-direction');
+  const headsign=tripMeta&&tripMeta.trip_headsign||'';
+  dirEl.textContent=headsign?'Направление':'';
+  dirEl.style.display=headsign?'':'none';
+  const nextEl=document.getElementById('vp-nextstop');
+  nextEl.innerHTML=headsign?`<div class="pop-time" style="max-width:100%;text-align:left">${escHtml(headsign)}</div>`:'';
+  setText('vp-meta','Источник: '+(v.source==='sim'?'расписание':'симуляция')+' · ID '+v.id.split(':').pop().slice(-8));
+  const popup=document.getElementById('veh-popup');
+  popup.style.display='block';
+  if(sx!=null&&sy!=null){
+    const pw=220,ph=160,W=window.innerWidth,H=window.innerHeight;
+    let x=sx+18,y=sy-ph/2;
+    if(x+pw>W-20)x=sx-pw-14;if(y<16)y=16;if(y+ph>H-20)y=H-ph-20;
+    popup.style.left=x+'px';popup.style.top=y+'px';
+  }
+}
+function closeVehPopup(){
+  document.getElementById('veh-popup').style.display='none';
+}
+function showRouteFromVehPopup(){
+  const v=(S.rtVehicles||[]).find(x=>x.id===S.selectedVehicleId);
+  if(!v)return;
+  closeVehPopup();
+  goToRouteCard(v.routeId);
+  openPanel();
+}
+function showRouteFromPopup(){
+  const stop=(S.allStops||[]).find(x=>x.stop_id===S.activeStopId);
+  const routeIds=stop&&S.routeIdsByStopId.get(stop.stop_id);
+  const routeId=S.activeSelectedRouteId||(routeIds&&[...routeIds][0])||null;
+  if(!routeId)return;
+  closePopup();
+  goToRouteCard(routeId);
+  openPanel();
+}
+// Форматирует объект Date в строку GTFS-даты (YYYYMMDD)
+function toGtfsDate(d){
+  return d.getFullYear().toString()+(d.getMonth()+1).toString().padStart(2,'0')+d.getDate().toString().padStart(2,'0');
+}
+// Возвращает Set активных service_id для заданной GTFS-даты по таблице calendar
+function getActiveServiceIds(gtfsDateStr){
+  const dayNames=['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  const d=new Date(gtfsDateStr.slice(0,4)+'-'+gtfsDateStr.slice(4,6)+'-'+gtfsDateStr.slice(6,8));
+  const dow=dayNames[d.getDay()];
+  const active=new Set();
+  const cal=S.calendarByServiceId||new Map();
+  for(const [sid,row] of cal){
+    if(row[dow]==='1'&&gtfsDateStr>=row.start_date&&gtfsDateStr<=row.end_date)active.add(sid);
+  }
+  if(!active.size)for(const sid of cal.keys())active.add(sid);
+  return active;
+}
+function onPopDateChange(){
+  const v=document.getElementById('pop-date').value;
+  if(!v)return;
+  S.scheduleDate=v.replace(/-/g,'');
+  const stop=(S.allStops||[]).find(x=>x.stop_id===S.activeStopId);
+  if(stop)openPopup(stop,null,null);
+}
+function onPopTimeChange(){
+  const v=document.getElementById('pop-time').value;
+  if(!v)return;
+  const [h,m]=v.split(':').map(Number);
+  S.scheduleTimeMin=h*60+m;
+  S.scheduleTimePinned=true;
+  const stop=(S.allStops||[]).find(x=>x.stop_id===S.activeStopId);
+  if(stop)openPopup(stop,null,null);
+}
+function openPopupForStop(stopId){
+  const s=(S.allStops||[]).find(x=>x.stop_id===stopId);
+  if(!s)return;
+  if(S.activeStopId!==stopId)S.scheduleTimePinned=false;
+  S.activeStopId=s.stop_id;
+  syncActiveStopPin();
+  const vp=deckgl&&deckgl.getViewports()[0];
+  const px=vp?vp.project([s.lon,s.lat]):[160,240];
+  openPopup(s,px[0],px[1]);
+}
+function openPopupByIndex(i){
+  const s=S.stops[i];if(!s)return;
+  if(S.activeStopId!==s.stop_id)S.scheduleTimePinned=false;
+  S.activeStopId=s.stop_id;
+  syncActiveStopPin();
+  highlightRoutesForStop(s);
+  S.infoSlideIndex=buildInfoSlides().findIndex(slide=>slide.key==='stop');
+  if(S.infoSlideIndex<0)S.infoSlideIndex=0;
+  renderInfoSlides();
+  const vp=deckgl.getViewports()[0];
+  const px=vp?vp.project([s.lon,s.lat]):[160,240];
+  openPopup(s,px[0],px[1]);
+}
+
+// Открывает попап остановки с ближайшими рейсами по расписанию
+function openPopup(stop,sx,sy){
+  setText('pop-sname',stop.name);
+  setText('pop-code',stop.code?'Код: '+stop.code:'ID: '+stop.stop_id);
+  const badge=document.getElementById('pop-rbadge');
+  const firstArr=stop.arrivals&&stop.arrivals[0];
+  badge.textContent='🚌 '+(S.route&&S.route.shortName||(firstArr&&firstArr.routeShort)||'—');
+  badge.style.background=S.route&&S.route.hex||'#2563eb';
+
+  const dateStr=S.scheduleDate||(S.scheduleDate=toGtfsDate(new Date()));
+  const nowM=S.scheduleTimePinned&&S.scheduleTimeMin!=null?S.scheduleTimeMin:(new Date().getHours()*60+new Date().getMinutes());
+  if(!S.scheduleTimePinned)S.scheduleTimeMin=nowM;
+
+  const dateInput=document.getElementById('pop-date');
+  const timeInput=document.getElementById('pop-time');
+  if(dateInput)dateInput.value=dateStr.slice(0,4)+'-'+dateStr.slice(4,6)+'-'+dateStr.slice(6,8);
+  if(timeInput){const h=Math.floor(nowM/60),m=nowM%60;timeInput.value=h.toString().padStart(2,'0')+':'+m.toString().padStart(2,'0');}
+
+  const timesEl=document.getElementById('pop-times');timesEl.innerHTML='';
+  const arrivals=(S.arrivalsByStopId&&S.arrivalsByStopId.get(stop.stop_id))||stop.arrivals||[];
+  if(!arrivals.length){
+    timesEl.innerHTML='<span class="pop-no-times">Нет данных</span>';
+  }else{
+    const activeServices=getActiveServiceIds(dateStr);
+    const filtered=arrivals.filter(a=>{
+      const sid=S.tripToService&&S.tripToService.get(a.tripId);
+      return !sid||activeServices.has(sid);
+    });
+    if(!filtered.length){
+      timesEl.innerHTML='<span class="pop-no-service">Нет рейсов в этот день</span>';
+    }else{
+      let startIdx=filtered.findIndex(a=>a.mins>=nowM);
+      if(startIdx<0)startIdx=0;
+      const result=[];
+      for(let i=0;i<filtered.length&&result.length<8;i++)result.push(filtered[(startIdx+i)%filtered.length]);
+      let firstNext=false;
+      for(const a of result){
+        const isN=!firstNext&&a.mins>=nowM;if(isN)firstNext=true;
+        const d=document.createElement('div');d.className='pop-time'+(isN?' next':'');d.textContent=formatTime(a.time);
+        timesEl.appendChild(d);
+      }
+    }
+  }
+
+  const popup=document.getElementById('popup');popup.style.display='block';
+  if(sx!=null&&sy!=null){
+    const pw=232,ph=250,W=window.innerWidth,H=window.innerHeight;
+    let x=sx+18,y=sy-ph/2;
+    if(x+pw>W-20)x=sx-pw-14;if(y<16)y=16;if(y+ph>H-20)y=H-ph-20;
+    popup.style.left=x+'px';popup.style.top=y+'px';
+  }
+}
+function closePopup(){
+  document.getElementById('popup').style.display='none';
+  S.activeStopId=null;
+  syncActiveStopPin();
+  renderInfoSlides();
+}
+
+// ── CONTROLS ────────────────────────────────────────────────
+function setupCtrl(btnId,spdId,spdvId){
+  const btn=document.getElementById(btnId),spd=document.getElementById(spdId),spdv=document.getElementById(spdvId);
+  if(!btn||!spd)return;
+  btn.addEventListener('click',()=>{
+    S.paused=!S.paused;
+    document.querySelectorAll('.btn-pp').forEach(b=>b.textContent=S.paused?'▶':'⏸');
+    setText('chip-txt',S.paused?'Пауза':'В движении');
+  });
+  spd.addEventListener('input',()=>{
+    S.animSpeed=parseFloat(spd.value);
+    document.querySelectorAll('input[type=range]').forEach(s=>s.value=S.animSpeed);
+    document.querySelectorAll('#spdv,#m-spdv').forEach(s=>s.textContent=S.animSpeed.toFixed(1));
+  });
+}
+setupCtrl('btnpp','spd','spdv');
+setupCtrl('m-btnpp','m-spd','m-spdv');
+setPanelMode('stops');
+updatePlannerButton();
+renderPlannerCard();
+
+// ── LOADING HELPERS ──────────────────────────────────────────
+function showLoading(msg,pct){
+  const el=document.getElementById('loading');
+  el.style.display='flex';
+  ldProg(pct||0,msg||'Загрузка…');
+}
+function hideLoading(){
+  document.getElementById('loading').style.display='none';
+}
+function ldProg(p,m){
+  document.getElementById('ldfill').style.width=p+'%';
+  if(m)document.getElementById('ld-text').textContent=m;
+}
+
+// ── UTILS ────────────────────────────────────────────────────
+function hexRgb(hex){return(hex.replace('#','')).match(/.{2}/g).map(x=>parseInt(x,16));}
+function parseTimeMin(t){if(!t)return 0;const[h,m]=t.split(':').map(Number);return h*60+(m||0);}
+function formatTime(t){if(!t)return'';const p=t.split(':');return p[0]+':'+p[1];}
+function setText(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
+function escHtml(s){
+  if(!s)return'';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── THEME ────────────────────────────────────────────────────
+const ICON_SUN=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`;
+const ICON_MOON=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+function setThemeIcon(dark){
+  const btn=document.getElementById('theme-toggle');
+  if(btn)btn.innerHTML=dark?ICON_SUN:ICON_MOON;
+}
+function toggleTheme(){
+  const dark=document.documentElement.classList.toggle('dark');
+  setThemeIcon(dark);
+  localStorage.setItem('theme',dark?'dark':'light');
+  deckgl.setProps({layers:buildLayers()});
+}
+
+/* ── PANEL OPEN / CLOSE ──────────────────────── */
+function openPanel(){
+  document.getElementById('desk-panel').classList.add('panel-open');
+  document.getElementById('mob-sheet').classList.add('panel-open');
+  document.getElementById('planner-btn').classList.add('is-active');
+}
+function closePanel(){
+  document.getElementById('desk-panel').classList.remove('panel-open');
+  const ms=document.getElementById('mob-sheet');
+  ms.classList.remove('panel-open','expanded');
+  document.getElementById('planner-btn').classList.remove('is-active');
+}
+function isPanelOpen(){
+  return document.getElementById('desk-panel').classList.contains('panel-open');
+}
+
+/* ── SEARCH OPEN / CLOSE ─────────────────────── */
+function openSearch(e){
+  const bar=document.getElementById('search-bar');
+  if(bar.classList.contains('search-open'))return;
+  bar.classList.add('search-open');
+  const clear=document.getElementById('search-clear');
+  if(clear)clear.classList.add('visible');
+  setTimeout(()=>document.getElementById('search-input').focus(),200);
+  openPanel();
+  setPanelMode('routes');
+}
+function closeSearch(e){
+  if(e)e.stopPropagation();
+  const bar=document.getElementById('search-bar');
+  bar.classList.remove('search-open');
+  const inp=document.getElementById('search-input');
+  const clear=document.getElementById('search-clear');
+  if(inp)inp.value='';
+  if(clear)clear.classList.remove('visible');
+  filterRoutes('');
+  if(!S.route)closePanel();
+}
+
+function onSearchInput(val){
+  const lq=val.trim().toLowerCase();
+  if(!lq){filterRoutes('');buildStopList();return;}
+  const words=lq.split(/\s+/).filter(Boolean);
+  const haystack=r=>(r.route_short_name||'')+' '+(r.route_long_name||'');
+  const routeCount=allRoutesCache.filter(r=>matchesQuery(haystack(r),words)).length;
+  const stopSource=S.allStops&&S.allStops.length?S.allStops:[];
+  const stopCount=stopSource.filter(s=>matchesQuery(s.name||'',words)).length;
+  // Show whichever tab has more results; routes win on tie
+  if(stopCount>routeCount){
+    setPanelMode('stops');
+    filterStops(val);
+  } else {
+    setPanelMode('routes');
+    filterRoutes(val);
+    filterStops(val);
+  }
+}
+function clearSearch(){
+  closeSearch(null);
+}
+
+(function(){
+  selectLang(currentLang,null);
+  const saved=localStorage.getItem('theme');
+  const dark=saved==='dark'||(!saved&&window.matchMedia('(prefers-color-scheme: dark)').matches);
+  if(dark){
+    document.documentElement.classList.add('dark');
+  }
+  setThemeIcon(dark);
+})();
+
+
+// ── СПЛЭШ: ВЫБОР ЯЗЫКА ───────────────────────────────────────
+window.splashSelectedLang=localStorage.getItem('kamchatka.transport.lang')||'ru';
+
+function selectLang(lang,btn){
+  window.splashSelectedLang=lang;
+  document.querySelectorAll('.splash-lang').forEach(b=>b.classList.remove('selected'));
+  if(btn)btn.classList.add('selected');
+  const startBtn=document.getElementById('splash-start');
+  if(startBtn)startBtn.textContent={ru:'Продолжить →',en:'Continue →',zh:'继续 →',ja:'続行 →'}[lang]||'Continue →';
+}
+
+function showSplash(){
+  const splash=document.getElementById('splash');
+  if(!splash)return;
+  // Сброс состояния загрузки
+  const ldEl=document.getElementById('splash-loading');
+  const langsEl=document.getElementById('splash-langs');
+  const startBtn=document.getElementById('splash-start');
+  if(ldEl)ldEl.classList.remove('show');
+  if(langsEl)langsEl.classList.remove('hide');
+  if(startBtn){startBtn.classList.remove('hide');startBtn.disabled=false;}
+  splash.style.display='flex';
+}
+
+async function startFromSplash(){
+  const lang=window.splashSelectedLang||'ru';
+  currentLang=lang;
+  localStorage.setItem('kamchatka.transport.lang',lang);
+  applyI18n();
+
+  const langsEl=document.getElementById('splash-langs');
+  const startBtn=document.getElementById('splash-start');
+  const ldEl=document.getElementById('splash-loading');
+  const ldText=document.getElementById('splash-ld-text');
+  const ldFill=document.getElementById('splash-ld-fill');
+  const ldErr=document.getElementById('splash-ld-err');
+  const retryBtn=document.getElementById('splash-retry');
+
+  if(langsEl)langsEl.classList.add('hide');
+  if(startBtn)startBtn.classList.add('hide');
+  if(ldEl)ldEl.classList.add('show');
+  if(ldErr)ldErr.classList.remove('show');
+  if(retryBtn)retryBtn.classList.remove('show');
+
+  const setP=(p,t)=>{if(ldFill)ldFill.style.width=p+'%';if(ldText)ldText.textContent=t||'Загрузка…';};
+  const showErr=(msg)=>{if(ldErr){ldErr.textContent=msg;ldErr.classList.add('show');}if(retryBtn)retryBtn.classList.add('show');if(ldFill)ldFill.style.width='0%';};
+
+  try{
+    setP(5,'Подключение к серверу…');
+    // Замените YOUR_USER/YOUR_REPO на ваш GitHub-аккаунт и репозиторий
+    const GTFS_REPO='https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/feeds';
+    const GTFS_FEEDS={ru:GTFS_REPO+'/gtfs-ru.zip',en:GTFS_REPO+'/gtfs-en.zip',zh:GTFS_REPO+'/gtfs-zh.zip',ja:GTFS_REPO+'/gtfs-ja.zip'};
+    const url=GTFS_FEEDS[lang]||GTFS_FEEDS.ru;
+    let files;
+    // Сначала пробуем локальную папку ./gtfs/ (для разработки)
+    try{
+      files=await loadFilesFromFolder((p,t)=>setP(5+p*.6,t));
+    }catch(_){
+      // Загружаем с GitHub
+      setP(10,'Загрузка расписания с сервера…');
+      const resp=await fetch(url);
+      if(!resp.ok)throw new Error(`HTTP ${resp.status}: ${url}`);
+      const total=+resp.headers.get('content-length')||0;
+      const reader=resp.body.getReader();
+      const chunks=[];let received=0;
+      while(true){
+        const{done,value}=await reader.read();
+        if(done)break;
+        chunks.push(value);received+=value.length;
+        if(total)setP(10+Math.round(received/total*50),'Загрузка… '+Math.round(received/1024)+'КБ');
+      }
+      const buf=new Uint8Array(received);let pos=0;
+      for(const c of chunks){buf.set(c,pos);pos+=c.length;}
+      setP(62,'Распаковка архива…');
+      files=await loadFilesFromZip(buf.buffer,(p,t)=>setP(62+p*.34,t));
+    }
+    setP(98,'Применение данных…');
+    await onFilesReady(files);
+    // Скрываем сплэш
+    const splash=document.getElementById('splash');
+    if(splash)splash.style.display='none';
+  }catch(e){
+    showErr('❌ Ошибка загрузки: '+e.message+'\n\nПроверьте интернет-соединение или повторите попытку.');
+  }
+}
+
+// ── BOOT ─────────────────────────────────────────────────────
+try{(function boot(){
+  const saved=localStorage.getItem('kamchatka.transport.lang');
+  const lang=saved||'ru';
+  window.splashSelectedLang=lang;
+  currentLang=lang;
+  document.querySelectorAll('.splash-lang').forEach(btn=>{
+    const m=btn.getAttribute('onclick')&&btn.getAttribute('onclick').match(/selectLang\('(\w+)'/);
+    if(m&&m[1]===lang)btn.classList.add('selected');
+    else btn.classList.remove('selected');
+  });
+  const startBtn=document.getElementById('splash-start');
+  if(startBtn)startBtn.textContent={ru:'Продолжить →',en:'Continue →',zh:'继续 →',ja:'続行 →'}[lang]||'Продолжить →';
+  applyI18n();
+
+  if(saved){
+    // Язык уже выбран — скрываем сплэш, сразу грузим GTFS
+    const splash=document.getElementById('splash');
+    if(splash)splash.style.display='none';
+    startFromSplash();
+  }
+  // Если saved===null — сплэш остаётся виден (первый запуск)
+})();}catch(e){window._bootErr=e.toString()+" "+e.stack;}
+// Разблокируем кнопку - скрипт полностью инициализирован
+(function(){var b=document.getElementById('splash-start');if(b){b.disabled=false;}})();
+</script>
+</body>
+</html>

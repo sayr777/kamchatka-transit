@@ -1,0 +1,18 @@
+# Claude AI files
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+*.log
+
+# Large media (не нужны в репо)
+*.mp4
+*.mov
