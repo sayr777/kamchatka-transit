@@ -3953,6 +3953,64 @@ function showSplash(){
   splash.style.display='flex';
 }
 
+// ── GTFS multi-feed cache ────────────────────────────────────
+const GTFS_CACHE_NAME='gtfs-feeds-v1';
+const GTFS_BASE='https://sayr777.github.io/kamchatka-transit/public';
+const GTFS_FEEDS={
+  ru:GTFS_BASE+'/gtfs_ru.zip',
+  en:GTFS_BASE+'/gtfs_en.zip',
+  zh:GTFS_BASE+'/gtfs_cn.zip',
+  ja:GTFS_BASE+'/gtfs_jp.zip'
+};
+
+async function gtfsGetCached(lang){
+  try{
+    const c=await caches.open(GTFS_CACHE_NAME);
+    const r=await c.match(GTFS_FEEDS[lang]);
+    if(!r)return null;
+    return await r.arrayBuffer();
+  }catch{return null;}
+}
+
+async function gtfsPutCache(lang,buf){
+  try{
+    const c=await caches.open(GTFS_CACHE_NAME);
+    await c.put(GTFS_FEEDS[lang],new Response(buf,{headers:{'Content-Type':'application/zip'}}));
+  }catch{}
+}
+
+async function fetchFeedWithProgress(lang,onProg){
+  const url=GTFS_FEEDS[lang]||GTFS_FEEDS.ru;
+  const resp=await fetch(url,{cache:'no-store'});
+  if(!resp.ok)throw new Error(`HTTP ${resp.status}: ${url}`);
+  const total=+resp.headers.get('content-length')||0;
+  const reader=resp.body.getReader();
+  const chunks=[];let received=0;
+  while(true){
+    const{done,value}=await reader.read();
+    if(done)break;
+    chunks.push(value);received+=value.length;
+    if(total&&onProg)onProg(Math.round(received/total*100));
+  }
+  const buf=new Uint8Array(received);let pos=0;
+  for(const c of chunks){buf.set(c,pos);pos+=c.length;}
+  return buf.buffer;
+}
+
+// Тихо обновляет все 4 фида в фоне после загрузки приложения
+function refreshFeedsInBackground(){
+  if(!navigator.onLine)return;
+  setTimeout(async()=>{
+    const langs=Object.keys(GTFS_FEEDS);
+    for(const l of langs){
+      try{
+        const buf=await fetchFeedWithProgress(l);
+        await gtfsPutCache(l,buf);
+      }catch{}
+    }
+  },3000);
+}
+
 async function startFromSplash(){
   const lang=window.splashSelectedLang||'ru';
   currentLang=lang;
@@ -3977,36 +4035,46 @@ async function startFromSplash(){
   const showErr=(msg)=>{if(ldErr){ldErr.textContent=msg;ldErr.classList.add('show');}if(retryBtn)retryBtn.classList.add('show');if(ldFill)ldFill.style.width='0%';};
 
   try{
-    setP(5,'Подключение к серверу…');
-    const GTFS_BASE='https://sayr777.github.io/kamchatka-transit/public';
-    const GTFS_FEEDS={ru:GTFS_BASE+'/gtfs_ru.zip',en:GTFS_BASE+'/gtfs_en.zip',zh:GTFS_BASE+'/gtfs_cn.zip',ja:GTFS_BASE+'/gtfs_jp.zip'};
-    const url=GTFS_FEEDS[lang]||GTFS_FEEDS.ru;
     let files;
-    // Сначала пробуем локальную папку ./gtfs/ (для разработки)
+
+    // 1. Локальная папка ./gtfs/ (только для разработки)
+    let localOk=false;
     try{
       files=await loadFilesFromFolder((p,t)=>setP(5+p*.6,t));
-    }catch(_){
-      // Загружаем с GitHub
-      setP(10,'Загрузка расписания с сервера…');
-      const resp=await fetch(url);
-      if(!resp.ok)throw new Error(`HTTP ${resp.status}: ${url}`);
-      const total=+resp.headers.get('content-length')||0;
-      const reader=resp.body.getReader();
-      const chunks=[];let received=0;
-      while(true){
-        const{done,value}=await reader.read();
-        if(done)break;
-        chunks.push(value);received+=value.length;
-        if(total)setP(10+Math.round(received/total*50),'Загрузка… '+Math.round(received/1024)+'КБ');
+      localOk=true;
+    }catch{}
+
+    if(!localOk){
+      // 2. Проверяем кэш для выбранного языка
+      setP(5,'Проверка кэша…');
+      const cached=await gtfsGetCached(lang);
+
+      if(cached){
+        // Есть кэш — грузим мгновенно, фоном обновляем все 4
+        setP(30,'Загрузка из кэша…');
+        files=await loadFilesFromZip(cached,(p,t)=>setP(30+p*.65,t));
+        refreshFeedsInBackground();
+      }else{
+        // Нет кэша — первый запуск: качаем все 4 параллельно
+        setP(5,'Первый запуск — загрузка расписания…');
+        const allLangs=Object.keys(GTFS_FEEDS);
+        // Основной фид качаем с прогрессом
+        const mainBuf=await fetchFeedWithProgress(lang,(p)=>{
+          setP(5+Math.round(p*.55),'Загрузка расписания '+Math.round(p)+'%…');
+        });
+        await gtfsPutCache(lang,mainBuf);
+        setP(62,'Распаковка…');
+        files=await loadFilesFromZip(mainBuf,(p,t)=>setP(62+p*.3,t));
+        // Остальные 3 фида — параллельно в фоне (без блокировки UI)
+        const others=allLangs.filter(l=>l!==lang);
+        Promise.all(others.map(async l=>{
+          try{const b=await fetchFeedWithProgress(l);await gtfsPutCache(l,b);}catch{}
+        })).catch(()=>{});
       }
-      const buf=new Uint8Array(received);let pos=0;
-      for(const c of chunks){buf.set(c,pos);pos+=c.length;}
-      setP(62,'Распаковка архива…');
-      files=await loadFilesFromZip(buf.buffer,(p,t)=>setP(62+p*.34,t));
     }
+
     setP(98,'Применение данных…');
     await onFilesReady(files);
-    // Скрываем сплэш
     const splash=document.getElementById('splash');
     if(splash)splash.style.display='none';
   }catch(e){
