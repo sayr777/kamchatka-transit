@@ -1,4 +1,4 @@
-const APP_CACHE = 'transit-pwa-clean-v2';
+const APP_CACHE = 'transit-pwa-clean-v3';
 const TILE_CACHE = 'transit-pwa-tiles-pk-v2';
 const APP_SHELL = [
   './',

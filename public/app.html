@@ -3351,10 +3351,10 @@ function buildLayers(){
 function getBasemapUrl(){
   return document.documentElement.classList.contains('dark')
     ?'https://basemaps.cartocdn.com/dark_matter_nolabels/{z}/{x}/{y}.png'
-    :'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
+    :'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 }
 function mkTile(url,id,opacity){
-  return new TileLayer({id,data:url,minZoom:0,maxZoom:18,tileSize:256,
+  return new TileLayer({id,data:url,minZoom:0,maxZoom:19,tileSize:256,
     renderSubLayers(p){
       const[[x0,y0],[x1,y1]]=p.tile.boundingBox;
       return new BitmapLayer(p,{data:null,image:p.data,bounds:[x0,y0,x1,y1],opacity:opacity??1});
@@ -3367,7 +3367,8 @@ function getBasemapLayers(){
     const lbl='https://basemaps.cartocdn.com/dark_matter_only_labels/{z}/{x}/{y}.png';
     return[mkTile(base,'base'),mkTile(lbl,'lbl1',0.9),mkTile(lbl+'?2','lbl2',0.8),mkTile(lbl+'?3','lbl3',0.7)];
   }
-  return[mkTile('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png','base')];
+  // OSM standard: показывает номера домов начиная с zoom 15
+  return[mkTile('https://tile.openstreetmap.org/{z}/{x}/{y}.png','base')];
 }
 
 function normalizeBearing(value){
