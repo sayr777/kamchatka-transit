@@ -7,7 +7,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#FC3F1D" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1A1A1A" media="(prefers-color-scheme: dark)">
 <title>Камчатка.Транспорт</title>
 <script>window.__savedDefine=window.define;window.define=undefined;</script>
 <script src="./vendor/jszip.min.js"></script>
@@ -43,27 +42,6 @@
   --panel-w:320px;--sheet-peek:88px;--sheet-full:82vh;
 }
 
-/* ── DARK THEME ──────────────────────────────── */
-html.dark{
-  --bg:#18181B;--panel:#1E1E22;--border:#3A3A40;
-  --t1:#F5F5F7;--t2:#8E8E93;--t3:#48484A;
-  --sh:0 1px 3px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.35);
-  --sh-up:0 -1px 3px rgba(0,0,0,.3),0 -4px 12px rgba(0,0,0,.25);
-  --ok:#30D158;--info:#4E90FF;
-}
-html.dark .sd{background:#252525;border-color:var(--border)}
-html.dark .pop-time{background:#333}
-html.dark .stop-hover-card{background:rgba(37,37,37,.97);border-color:#444;color:#F0F0F0}
-html.dark .stop-hover-card-title{color:#F0F0F0}
-html.dark .stop-pin-dot{background:#252525;border-color:var(--acc)}
-html.dark .bus-pin-bubble{background:rgba(26,26,26,.45)}
-html.dark input[type=range]{background:var(--border)}
-html.dark .ld-bar{background:var(--border)}
-html.dark .modal-head{background:#2D2D2D !important;border-color:#3A3A3A !important}
-html.dark .sm-dropzone{background:rgba(255,255,255,.02)}
-html.dark .sm-folder-info{background:rgba(255,255,255,.03)}
-html.dark .sm-url-input,.html.dark .rm-search{background:#1A1A1A}
-html.dark .pop-head{background:#2D2D2D}
 
 /* ── SEARCH BAR ────────────────────────────── */
 #search-bar{
@@ -112,7 +90,7 @@ html.dark .pop-head{background:#2D2D2D}
 #search-clear.visible{display:flex}
 
 /* ── FLOATING BUTTONS ────────────────────────── */
-#theme-toggle,#feed-btn,#locate-btn,#planner-btn,#compass-btn,#tilt-btn{
+#feed-btn,#locate-btn,#planner-btn,#compass-btn,#tilt-btn{
   position:absolute;z-index:50;
   width:44px;height:44px;
   background:var(--panel);
@@ -123,7 +101,7 @@ html.dark .pop-head{background:#2D2D2D}
   transition:background var(--ease),box-shadow var(--ease),transform var(--ease);
   color:var(--t2);
 }
-#theme-toggle:focus-visible,#feed-btn:focus-visible,#locate-btn:focus-visible,
+#feed-btn:focus-visible,#locate-btn:focus-visible,
 #planner-btn:focus-visible,#compass-btn:focus-visible{
   outline:2px solid var(--acc);outline-offset:2px;
 }
@@ -131,8 +109,7 @@ html.dark .pop-head{background:#2D2D2D}
 #tilt-btn{top:68px;right:16px;bottom:auto;font-size:11px;font-weight:800;letter-spacing:.02em}
 /* search-bar занимает top:64px */
 #planner-btn{top:112px;right:16px;bottom:auto}
-#theme-toggle{bottom:80px;right:16px;top:auto}
-#feed-btn{bottom:128px;right:16px;top:auto}
+#feed-btn{bottom:80px;right:16px;top:auto}
 #locate-btn{bottom:32px;right:16px;top:auto}
 #planner-btn.is-active{background:var(--acc);color:#fff}
 
@@ -155,8 +132,8 @@ html.dark .pop-head{background:#2D2D2D}
 }
 .sheet-close-btn:hover{background:var(--border)}
 #compass-btn.is-active{color:var(--acc)}
-#theme-toggle:hover,#feed-btn:hover,#locate-btn:hover,#planner-btn:hover,#compass-btn:hover,#tilt-btn:hover,#search-bar:hover:not(.search-open){background:var(--bg);box-shadow:0 4px 16px rgba(0,0,0,.18);transform:translateY(-1px)}
-#theme-toggle:active,#feed-btn:active,#locate-btn:active,#planner-btn:active,#compass-btn:active,#tilt-btn:active{transform:scale(.94);box-shadow:var(--sh)}
+#feed-btn:hover,#locate-btn:hover,#planner-btn:hover,#compass-btn:hover,#tilt-btn:hover,#search-bar:hover:not(.search-open){background:var(--bg);box-shadow:0 4px 16px rgba(0,0,0,.18);transform:translateY(-1px)}
+#feed-btn:active,#locate-btn:active,#planner-btn:active,#compass-btn:active,#tilt-btn:active{transform:scale(.94);box-shadow:var(--sh)}
 .compass-face{position:relative;width:22px;height:22px;border-radius:50%;border:1.6px solid currentColor;display:flex;align-items:center;justify-content:center;line-height:1}
 #compass-needle{display:block;transform-origin:center;transition:transform .18s ease}
 
@@ -233,12 +210,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
 .planner-leg-copy{font-size:10.5px;color:var(--t2);line-height:1.55;margin-top:7px}
 .planner-leg-copy strong{color:var(--t1)}
 .planner-empty{font-size:11px;color:var(--t2);line-height:1.55;padding:10px 0 2px}
-html.dark .planner-card{background:linear-gradient(180deg,rgba(40,38,52,.94),rgba(26,24,35,.92));border-color:rgba(255,255,255,.08);box-shadow:0 14px 36px rgba(0,0,0,.3)}
-html.dark .planner-point,html.dark .planner-leg{background:rgba(255,255,255,.03)}
-html.dark .planner-summary-item{background:rgba(255,255,255,.05)}
-html.dark .planner-action{background:rgba(255,255,255,.08);color:var(--t1)}
-html.dark .planner-pill{background:rgba(96,165,250,.16);color:#93c5fd}
-html.dark .planner-pill.is-transfer{background:rgba(248,113,113,.14);color:#fca5a5}
 .rt-bar{margin-top:10px;padding:8px 10px;border-radius:10px;background:rgba(42,157,108,.08);border:1px solid rgba(42,157,108,.2);font-size:10.5px;color:var(--ok);display:none;align-items:center;gap:6px}
 .rt-bar.show{display:flex}
 .compact-hide{display:none !important}
@@ -294,14 +265,6 @@ html.dark .planner-pill.is-transfer{background:rgba(248,113,113,.14);color:#fca5
 .info-link-btn:hover{transform:translateY(-1px);background:rgba(232,69,37,.12);border-color:rgba(232,69,37,.24)}
 .info-link-btn.is-disabled{opacity:.48;cursor:default;transform:none}
 .info-link-icon{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.7);font-size:11px;flex-shrink:0}
-html.dark .info-slide-card{background:linear-gradient(180deg,rgba(37,36,49,.92),rgba(24,23,34,.88));border-color:rgba(255,255,255,.06)}
-html.dark .info-slide-row{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.05)}
-html.dark .info-slide-dot{background:rgba(255,255,255,.18)}
-html.dark .route-card-track{background:rgba(255,255,255,.08)}
-html.dark .route-timeline-dot{background:#1c1b24}
-html.dark .info-board-row{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.05)}
-html.dark .info-slide-section{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.05)}
-html.dark .info-link-icon{background:rgba(255,255,255,.12)}
 .rt-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex-shrink:0;animation:pd2 2s ease-in-out infinite}
 @keyframes pd2{0%{box-shadow:0 0 0 0 rgba(42,157,108,.5)}70%{box-shadow:0 0 0 5px rgba(42,157,108,0)}100%{box-shadow:0 0 0 0 rgba(42,157,108,0)}}
 .route-list-item{cursor:pointer;border-radius:16px;transition:background .18s ease,transform .18s ease,box-shadow .18s ease}
@@ -319,8 +282,6 @@ html.dark .info-link-icon{background:rgba(255,255,255,.12)}
 .route-selection-chip{padding:5px 10px;border-radius:999px;border:1px solid currentColor;background:transparent;font-size:10.5px;font-weight:700;line-height:1}
 .route-selection-chip--muted{color:var(--t3);border-color:var(--border)}
 @keyframes routeCardIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-html.dark .route-list-item:hover{background:rgba(255,255,255,.04)}
-html.dark .route-selection-card{background:linear-gradient(180deg,rgba(40,38,52,.92),rgba(26,24,35,.88));border-color:rgba(255,255,255,.08)}
 
 /* desktop panel */
 #desk-panel{position:absolute;top:16px;left:16px;width:var(--panel-w);max-height:calc(100vh - 32px);background:var(--panel);border-radius:var(--r);border:none;box-shadow:var(--sh);display:flex;flex-direction:column;overflow:hidden}
@@ -331,7 +292,6 @@ html.dark .route-selection-card{background:linear-gradient(180deg,rgba(40,38,52,
 .pb{padding:12px 16px;overflow-y:auto;flex:1}
 .pb::-webkit-scrollbar{width:4px}
 .pb::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-html.dark .ph{background:var(--panel);border-color:var(--border)}
 
 /* mobile bottom sheet */
 #mob-sheet{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--panel);border-radius:16px 16px 0 0;box-shadow:0 -2px 12px rgba(0,0,0,.12);display:flex;flex-direction:column;height:var(--sheet-peek);transition:height .35s cubic-bezier(.32,.72,0,1);touch-action:none;will-change:height}
@@ -363,7 +323,7 @@ html.dark .ph{background:var(--panel);border-color:var(--border)}
   #mob-sheet.panel-open.expanded{height:var(--sheet-full)}
   /* мобильные FAB: сдвигаем вправо к краю */
   #compass-btn,#search-bar,#planner-btn{right:12px}
-  #theme-toggle,#feed-btn,#locate-btn{right:12px}
+  #feed-btn,#locate-btn{right:12px}
   /* сплэш: кнопки языка чуть меньше на узком экране */
   .splash-lang{padding:10px 6px}
   .splash-lang-flag{font-size:28px}
@@ -415,11 +375,9 @@ html.dark .ph{background:var(--panel);border-color:var(--border)}
 .pop-no-times{font-size:11px;color:var(--t3)}
 .pop-code{font-size:9.5px;color:var(--t3);margin-top:8px}
 #veh-popup{position:absolute;display:none;z-index:300;width:220px;background:var(--panel);border-radius:12px;border:none;box-shadow:0 4px 20px rgba(0,0,0,.16);overflow:hidden}
-html.dark #veh-popup .pop-head{background:#2D2D2D}
 .pop-date-row{display:flex;gap:5px;margin-bottom:8px;margin-top:2px}
 .pop-date-row input{flex:1;min-width:0;border:1px solid var(--border);border-radius:6px;padding:3px 5px;font-size:11px;color:var(--t1);background:var(--bg);font-family:var(--body);outline:none;cursor:pointer}
 .pop-date-row input:focus{border-color:var(--acc)}
-html.dark .pop-date-row input{background:#333;color:var(--t1);border-color:var(--border)}
 .pop-no-service{font-size:11px;color:var(--t3);font-style:italic}
 
 /* chip */
@@ -440,7 +398,6 @@ body{padding-bottom:env(safe-area-inset-bottom);padding-top:env(safe-area-inset-
   #tilt-btn{top:calc(64px + env(safe-area-inset-top))}
 #search-bar{top:calc(60px + env(safe-area-inset-top))}
 #planner-btn{top:calc(108px + env(safe-area-inset-top))}
-#theme-toggle{bottom:calc(80px + env(safe-area-inset-bottom))}
 #feed-btn{bottom:calc(128px + env(safe-area-inset-bottom))}
 #locate-btn{bottom:calc(32px + env(safe-area-inset-bottom))}
 
@@ -658,11 +615,6 @@ body{padding-bottom:env(safe-area-inset-bottom);padding-top:env(safe-area-inset-
   </svg>
 </button>
 <button id="feed-btn" title="Сменить язык" onclick="showSplash()" style="font-size:18px;line-height:1">🌐</button>
-<button id="theme-toggle" title="Тема" onclick="toggleTheme()">
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="theme-icon">
-    <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-  </svg>
-</button>
 <button id="planner-btn" title="Планировщик" onclick="togglePlannerMode()">⇄</button>
 <button id="compass-btn" title="Компас" onclick="resetCompassOrientation()"><span class="compass-face"><span id="compass-needle">N</span></span></button>
 <button id="tilt-btn" title="Перспектива" onclick="toggleTilt()">3D</button>
@@ -840,7 +792,6 @@ function applyI18n(){
   document.documentElement.lang=currentLang;
   document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.getAttribute('data-i18n'));});
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{el.setAttribute('placeholder',t(el.getAttribute('data-i18n-placeholder')));});
-  const tt=document.getElementById('theme-toggle'); if(tt) tt.title=t('btn.theme');
   const fb=document.getElementById('feed-btn'); if(fb) fb.title=t('btn.feed');
   const lb=document.getElementById('locate-btn'); if(lb) lb.title=t('btn.locate');
   const pb=document.getElementById('planner-btn'); if(pb) pb.title=t('btn.planner');
@@ -3351,18 +3302,11 @@ function buildLayers(){
 }
 
 const STADIA_KEY='4e9a5629-2d69-4cac-a920-4e4c94258f18';
-const MAPBOX_TOKEN='pk.eyJ1IjoiYW50b24wNjEyIiwiYSI6ImNtcWltNWt2NzAwNW0ydHM5eXlkcGZ6cjAifQ.8PaloVhi21MZLJfuFNIibA';
-
 const STYLE_LIGHT={
   version:8,
   sources:{'stadia':{type:'raster',tiles:[`https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}.png?api_key=${STADIA_KEY}`],tileSize:256,attribution:'© Stadia Maps © OpenMapTiles © OpenStreetMap'}},
   layers:[{id:'stadia-tiles',type:'raster',source:'stadia'}]
 };
-const STYLE_DARK=`https://api.mapbox.com/styles/v1/anton0612/cmqimb5xg001y01pm1rsu69qr?access_token=${MAPBOX_TOKEN}`;
-
-function getMapStyle(){
-  return document.documentElement.classList.contains('dark')?STYLE_DARK:STYLE_LIGHT;
-}
 
 function normalizeBearing(value){
   const bearing=Number.isFinite(value)?value:0;
@@ -3420,15 +3364,10 @@ function applyFirstOpenOrientation(){
 
 const mlMap=new maplibregl.Map({
   container:'map',
-  style:getMapStyle(),
+  style:STYLE_LIGHT,
   center:[158.700,53.015],
   zoom:12.5,pitch:0,bearing:0,
   maxPitch:60,
-  transformRequest:(url)=>{
-    if(url.startsWith('https://api.mapbox.com')||url.startsWith('https://events.mapbox.com')){
-      return{url:url+(url.includes('?')?'&':'?')+'access_token='+MAPBOX_TOKEN};
-    }
-  }
 });
 
 const{MapboxOverlay}=deck;
@@ -3873,18 +3812,6 @@ function escHtml(s){
 }
 
 // ── THEME ────────────────────────────────────────────────────
-const ICON_SUN=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`;
-const ICON_MOON=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
-function setThemeIcon(dark){
-  const btn=document.getElementById('theme-toggle');
-  if(btn)btn.innerHTML=dark?ICON_SUN:ICON_MOON;
-}
-function toggleTheme(){
-  const dark=document.documentElement.classList.toggle('dark');
-  setThemeIcon(dark);
-  localStorage.setItem('theme',dark?'dark':'light');
-  mlMap.setStyle(getMapStyle());
-}
 
 /* ── PANEL OPEN / CLOSE ──────────────────────── */
 function openPanel(){
@@ -3949,12 +3876,6 @@ function clearSearch(){
 
 (function(){
   selectLang(currentLang,null);
-  const saved=localStorage.getItem('theme');
-  const dark=saved==='dark'||(!saved&&window.matchMedia('(prefers-color-scheme: dark)').matches);
-  if(dark){
-    document.documentElement.classList.add('dark');
-  }
-  setThemeIcon(dark);
 })();
 
 
