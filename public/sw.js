@@ -2,7 +2,7 @@ const APP_CACHE = 'transit-pwa-clean-v2';
 const TILE_CACHE = 'transit-pwa-tiles-pk-v2';
 const APP_SHELL = [
   './',
-  './index.html',
+  './app.html',
   './manifest.json',
   './feed.zip',
   './favicon.svg',

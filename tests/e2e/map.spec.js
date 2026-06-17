@@ -4,10 +4,11 @@
 import { test, expect } from '@playwright/test';
 
 const BASE = 'http://localhost:8001';
+const APP = `${BASE}/app.html`;
 
 /** Хелпер: загружает приложение с уже сохранённым языком (пропускает сплэш) */
 async function loadApp(page) {
-  await page.goto(BASE);
+  await page.goto(APP);
   await page.evaluate(() => localStorage.setItem('kamchatka.transport.lang', 'ru'));
   await page.reload();
   // Ждём появления deckgl (может не появиться в headless без WebGL)
@@ -229,7 +230,7 @@ test.describe('PWA и мета-теги', () => {
   });
 
   test('viewport meta установлен', async ({ page }) => {
-    await page.goto(BASE);
+    await page.goto(APP);
     const viewport = await page.evaluate(() =>
       document.querySelector('meta[name="viewport"]')?.getAttribute('content') ?? ''
     );
@@ -238,7 +239,7 @@ test.describe('PWA и мета-теги', () => {
   });
 
   test('title страницы корректный', async ({ page }) => {
-    await page.goto(BASE);
+    await page.goto(APP);
     await expect(page).toHaveTitle(/Камчатка/);
   });
 });
