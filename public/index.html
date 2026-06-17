@@ -3294,7 +3294,7 @@ function buildLayers(){
   const visibleVehicles=getVisibleVehiclesForMap();
   if(!S.route||!S.tripsData){
     const layers=[
-      new TileLayer({id:'base',data:getBasemapUrl(),minZoom:0,maxZoom:19,tileSize:256,renderSubLayers(p){const[[x0,y0],[x1,y1]]=p.tile.boundingBox;return new BitmapLayer(p,{data:null,image:p.data,bounds:[x0,y0,x1,y1]});}})
+      ...getBasemapLayers()
     ];
     layers.push(...buildRoutePreviewLayers());
     if(visibleVehicles.length){
@@ -3320,7 +3320,7 @@ function buildLayers(){
   const bp=busPos();
   const sz=dynSizes();
   const layers=[
-    new TileLayer({id:'base',data:getBasemapUrl(),minZoom:0,maxZoom:19,tileSize:256,renderSubLayers(p){const[[x0,y0],[x1,y1]]=p.tile.boundingBox;return new BitmapLayer(p,{data:null,image:p.data,bounds:[x0,y0,x1,y1]});}}),
+    ...getBasemapLayers(),
     new PathLayer({id:'rs',data:[{path:S.shapePath}],getPath:d=>d.path,getColor:[r,g,b,25],getWidth:8,widthMinPixels:Math.round(sz.lineW*1.4),rounded:true,capRounded:true}),
     new PathLayer({id:'rl',data:[{path:S.shapePath}],getPath:d=>d.path,getColor:[r,g,b,230],getWidth:4,widthMinPixels:Math.round(sz.lineW),rounded:true,capRounded:true}),
     new TripsLayer({id:'trips',data:S.tripsData,getPath:d=>d.path,getTimestamps:d=>d.timestamps,getColor:[r,g,b,255],currentTime:ct,trailLength:60,widthMinPixels:Math.round(sz.lineW),rounded:true,capRounded:true}),
@@ -3348,8 +3348,24 @@ function buildLayers(){
 
 function getBasemapUrl(){
   return document.documentElement.classList.contains('dark')
-    ?'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    :'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+    ?'https://basemaps.cartocdn.com/dark_matter_nolabels/{z}/{x}/{y}{r}.png'
+    :'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png';
+}
+function mkTile(url,id){
+  return new TileLayer({id,data:url,minZoom:0,maxZoom:19,tileSize:256,
+    renderSubLayers(p){
+      const[[x0,y0],[x1,y1]]=p.tile.boundingBox;
+      return new BitmapLayer(p,{data:null,image:p.data,bounds:[x0,y0,x1,y1]});
+    }
+  });
+}
+function getBasemapLayers(){
+  if(document.documentElement.classList.contains('dark')){
+    const base='https://basemaps.cartocdn.com/dark_matter_nolabels/{z}/{x}/{y}{r}.png';
+    const lbl='https://basemaps.cartocdn.com/dark_matter_only_labels/{z}/{x}/{y}{r}.png';
+    return[mkTile(base,'base'),mkTile(lbl,'lbl1'),mkTile(lbl+'?2','lbl2')];
+  }
+  return[mkTile('https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png','base')];
 }
 
 function normalizeBearing(value){

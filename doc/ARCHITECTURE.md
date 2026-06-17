@@ -529,3 +529,77 @@ Message → Принять команду обновления фида
 3. CDN для статических JSON-чанков
 4. WebSocket с горизонтальным масштабированием через Redis pub/sub
 ```
+
+---
+
+## 12. Источники GTFS-данных (фиды)
+
+### 12.1 Локальная папка (по умолчанию)
+
+Приложение загружает GTFS-файлы из папки `./gtfs/` относительно `index.html`.
+При локальном запуске (`python -m http.server 8001 --directory public`) это:
+
+```
+public/gtfs/
+├── agency.txt
+├── calendar.txt
+├── routes.txt
+├── shapes.txt
+├── stop_times.txt
+├── stops.txt
+├── trips.txt
+├── frequencies.txt       (опционально)
+├── vehicles.txt          (опционально)
+└── vehicle_trips.txt     (опционально)
+```
+
+Функция загрузки: `loadFilesFromFolder()` в `index.html` (строка ~2555).
+
+### 12.2 GitHub Pages (облачное хранилище фидов)
+
+Репозиторий опубликован на GitHub Pages:
+
+| Ресурс | URL |
+|--------|-----|
+| Приложение | `https://sayr777.github.io/kamchatka-transit/public/` |
+| GTFS ZIP | `https://sayr777.github.io/kamchatka-transit/public/gtfs.zip` |
+| Остановки | `https://sayr777.github.io/kamchatka-transit/public/gtfs/stops.txt` |
+| Маршруты | `https://sayr777.github.io/kamchatka-transit/public/gtfs/routes.txt` |
+| Рейсы | `https://sayr777.github.io/kamchatka-transit/public/gtfs/trips.txt` |
+
+Когда приложение открыто через GitHub Pages, `./gtfs/` автоматически резолвится
+в эти URL — ничего дополнительно настраивать не нужно.
+
+### 12.3 Обновление фида
+
+```bash
+# 1. Замените файлы в папке
+cp /path/to/new/*.txt C:/T1_GIT/pwa/public/gtfs/
+
+# 2. Пересоберите ZIP
+python -c "
+import zipfile, os
+with zipfile.ZipFile('public/gtfs.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
+    for f in os.listdir('public/gtfs'):
+        if f.endswith('.txt'):
+            zf.write('public/gtfs/' + f, f)
+"
+
+# 3. Опубликуйте
+git add public/gtfs/ public/gtfs.zip
+git commit -m "Update GTFS feed"
+git push
+```
+
+GitHub Pages обновится автоматически в течение 1–2 минут.
+
+### 12.4 Базовая карта (тайловые слои)
+
+| Тема | Провайдер | URL-шаблон |
+|------|-----------|------------|
+| Светлая | Carto Light All | `https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png` |
+| Тёмная (основа) | Carto Dark Matter (без меток) | `https://basemaps.cartocdn.com/dark_matter_nolabels/{z}/{x}/{y}{r}.png` |
+| Тёмная (метки) | Carto Dark Matter (только метки) | `https://basemaps.cartocdn.com/dark_matter_only_labels/{z}/{x}/{y}{r}.png` |
+
+В тёмной теме слой меток рендерится дважды для повышения контрастности
+номеров домов и названий улиц (функция `getBasemapLayers()`).
