@@ -1,0 +1,104 @@
+{
+  "header": {
+    "gtfsRealtimeVersion": "2.0",
+    "timestamp": 1774800000
+  },
+  "entity": [
+    {
+      "id": "veh1",
+      "vehicle": {
+        "trip": { "routeId": "route_2603280916_42721" },
+        "vehicle": { "id": "veh1", "label": "3" },
+        "position": { "latitude": 53.0545, "longitude": 158.6651 }
+      }
+    },
+    {
+      "id": "veh2",
+      "vehicle": {
+        "trip": { "routeId": "route_2603280916_20893" },
+        "vehicle": { "id": "veh2", "label": "2" },
+        "position": { "latitude": 53.0451, "longitude": 158.6730 }
+      }
+    },
+    {
+      "id": "veh3",
+      "vehicle": {
+        "trip": { "routeId": "route_2603280916_84939" },
+        "vehicle": { "id": "veh3", "label": "11" },
+        "position": { "latitude": 53.0293, "longitude": 158.7175 }
+      }
+    },
+    {
+      "id": "veh4",
+      "vehicle": {
+        "trip": { "routeId": "route_2603280916_13897" },
+        "vehicle": { "id": "veh4", "label": "2" },
+        "position": { "latitude": 53.0612, "longitude": 158.6365 }
+      }
+    },
+    {
+      "id": "veh5",
+      "vehicle": {
+        "trip": { "routeId": "route_2603280916_31531" },
+        "vehicle": { "id": "veh5", "label": "4" },
+        "position": { "latitude": 53.0602, "longitude": 158.6499 }
+      }
+    },
+    {
+      "id": "veh6",
+      "vehicle": {
+        "trip": { "routeId": "route_2603280916_78990" },
+        "vehicle": { "id": "veh6", "label": "6к" },
+        "position": { "latitude": 53.0320, "longitude": 158.6828 }
+      }
+    },
+    {
+      "id": "veh7",
+      "vehicle": {
+        "trip": { "routeId": "route_2603280916_44638" },
+        "vehicle": { "id": "veh7", "label": "6к" },
+        "position": { "latitude": 53.0634, "longitude": 158.6396 }
+      }
+    },
+    {
+      "id": "veh8",
+      "vehicle": {
+        "trip": { "routeId": "route_2603280916_45946" },
+        "vehicle": { "id": "veh8", "label": "11" },
+        "position": { "latitude": 53.0464, "longitude": 158.6620 }
+      }
+    },
+    {
+      "id": "veh9",
+      "vehicle": {
+        "trip": { "routeId": "route_2603280916_60131" },
+        "vehicle": { "id": "veh9", "label": "14" },
+        "position": { "latitude": 53.0390, "longitude": 158.6586 }
+      }
+    },
+    {
+      "id": "veh10",
+      "vehicle": {
+        "trip": { "routeId": "route_2603280916_21428" },
+        "vehicle": { "id": "veh10", "label": "21" },
+        "position": { "latitude": 53.0359, "longitude": 158.6735 }
+      }
+    },
+    {
+      "id": "veh11",
+      "vehicle": {
+        "trip": { "routeId": "route_2603280916_07341" },
+        "vehicle": { "id": "veh11", "label": "23" },
+        "position": { "latitude": 53.0405, "longitude": 158.6786 }
+      }
+    },
+    {
+      "id": "veh12",
+      "vehicle": {
+        "trip": { "routeId": "route_2603281205_96075" },
+        "vehicle": { "id": "veh12", "label": "16" },
+        "position": { "latitude": 53.0365, "longitude": 158.6756 }
+      }
+    }
+  ]
+}

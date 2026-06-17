@@ -1,0 +1,4 @@
+"attribution_id","agency_id","route_id","trip_id","organization_name","is_producer","is_operator","is_authority","attribution_url","attribution_email","attribution_phone"
+"attr_2603281157_78518","","","","АО «Автопарк»","0","1","0","https://pkgo.ru","Avtopark41@yandex.ru","301-070"
+"attr_2603281157_49707","","","","Министерство транспорта и дорожного строительства Камчатского края","0","0","1","https://kamgov.ru/mintrans","",""
+"attr_2603281157_54305","","","","АО Группа Т1","1","0","0","https://www.t1-group.ru","info@t1-group.ru",""
