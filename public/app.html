@@ -3978,9 +3978,8 @@ async function startFromSplash(){
 
   try{
     setP(5,'Подключение к серверу…');
-    // Замените YOUR_USER/YOUR_REPO на ваш GitHub-аккаунт и репозиторий
-    const GTFS_REPO='https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/feeds';
-    const GTFS_FEEDS={ru:GTFS_REPO+'/gtfs-ru.zip',en:GTFS_REPO+'/gtfs-en.zip',zh:GTFS_REPO+'/gtfs-zh.zip',ja:GTFS_REPO+'/gtfs-ja.zip'};
+    const GTFS_BASE='https://sayr777.github.io/kamchatka-transit/public';
+    const GTFS_FEEDS={ru:GTFS_BASE+'/gtfs_ru.zip',en:GTFS_BASE+'/gtfs_en.zip',zh:GTFS_BASE+'/gtfs_cn.zip',ja:GTFS_BASE+'/gtfs_jp.zip'};
     const url=GTFS_FEEDS[lang]||GTFS_FEEDS.ru;
     let files;
     // Сначала пробуем локальную папку ./gtfs/ (для разработки)
