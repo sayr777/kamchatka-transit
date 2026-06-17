@@ -3409,6 +3409,34 @@ window.addEventListener('resize',()=>{
 });
 window.addEventListener('online',()=>startRealtime());
 window.addEventListener('offline',()=>enableOfflineSimulation('нет сети'));
+
+// ── OFFLINE TILE PRECACHE ─────────────────────────────────────
+function lon2tile(lon,z){return Math.floor((lon+180)/360*Math.pow(2,z));}
+function lat2tile(lat,z){return Math.floor((1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2*Math.pow(2,z));}
+
+function precacheRegionTiles(){
+  if(!navigator.serviceWorker?.controller)return;
+  // Петропавловск-Камчатский + ближайшие окрестности
+  const BBOX={minLon:158.35,maxLon:159.10,minLat:52.75,maxLat:53.30};
+  const ZOOMS=[8,9,10,11,12,13,14];
+  const TILE_URL=`https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}.png?api_key=${STADIA_KEY}`;
+  const urls=[];
+  for(const z of ZOOMS){
+    const x0=lon2tile(BBOX.minLon,z),x1=lon2tile(BBOX.maxLon,z);
+    const y0=lat2tile(BBOX.maxLat,z),y1=lat2tile(BBOX.minLat,z);
+    for(let x=x0;x<=x1;x++)
+      for(let y=y0;y<=y1;y++)
+        urls.push(TILE_URL.replace('{z}',z).replace('{x}',x).replace('{y}',y));
+  }
+  // Отправляем чанками по 1000 чтобы не блокировать SW
+  const CHUNK=1000;
+  for(let i=0;i<urls.length;i+=CHUNK)
+    navigator.serviceWorker.controller.postMessage({type:'PRELOAD_TILES',urls:urls.slice(i,i+CHUNK)});
+  console.log('[offline] precaching',urls.length,'tiles for PKC region');
+}
+
+// Запускаем через 5 сек после старта — после загрузки GTFS и карты
+mlMap.once('load',()=>setTimeout(precacheRegionTiles,5000));
 setTimeout(applyFirstOpenOrientation,0);
 
 function dynSizes(){

@@ -1,5 +1,5 @@
-const APP_CACHE = 'transit-pwa-clean-v3';
-const TILE_CACHE = 'transit-pwa-tiles-pk-v2';
+const APP_CACHE = 'transit-pwa-clean-v4';
+const TILE_CACHE = 'transit-pwa-tiles-pk-v3';
 const APP_SHELL = [
   './',
   './app.html',
@@ -83,7 +83,7 @@ self.addEventListener('message', event => {
   if (!data || data.type !== 'PRELOAD_TILES' || !Array.isArray(data.urls)) return;
   event.waitUntil((async () => {
     const cache = await caches.open(TILE_CACHE);
-    const unique = [...new Set(data.urls)].slice(0, 1200);
+    const unique = [...new Set(data.urls)].slice(0, 5000);
     for (const url of unique) {
       const request = new Request(url, { mode: 'cors' });
       if (await cache.match(request)) continue;
