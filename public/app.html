@@ -3302,7 +3302,7 @@ function buildLayers(){
 }
 
 const MAPBOX_TOKEN='pk.eyJ1IjoiYW50b24wNjEyIiwiYSI6ImNtcWltNWt2NzAwNW0ydHM5eXlkcGZ6cjAifQ.8PaloVhi21MZLJfuFNIibA';
-const MAPBOX_STYLE=`https://api.mapbox.com/styles/v1/anton0612/cmqinytnv001z01pmbzqogxpa?access_token=${MAPBOX_TOKEN}`;
+const MAPBOX_STYLE='https://api.mapbox.com/styles/v1/anton0612/cmqinytnv001z01pmbzqogxpa';
 
 function normalizeBearing(value){
   const bearing=Number.isFinite(value)?value:0;
@@ -3358,22 +3358,40 @@ function applyFirstOpenOrientation(){
   setText('chip-txt','Север сверху');
 }
 
-const mlMap=new maplibregl.Map({
-  container:'map',
-  style:MAPBOX_STYLE,
-  center:[158.700,53.015],
-  zoom:12.5,pitch:0,bearing:0,
-  maxPitch:60,
-  transformRequest:(url)=>{
-    if(url.startsWith('https://api.mapbox.com')||url.startsWith('https://events.mapbox.com'))
-      return{url:url+(url.includes('?')?'&':'?')+'access_token='+MAPBOX_TOKEN};
-  }
+const MAPBOX_RASTER_STYLE={
+  version:8,
+  sources:{mapbox:{type:'raster',tileSize:256,attribution:'© Mapbox',
+    tiles:[`https://api.mapbox.com/styles/v1/anton0612/cmqinytnv001z01pmbzqogxpa/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`]
+  }},
+  layers:[{id:'mapbox-tiles',type:'raster',source:'mapbox'}]
+};
+
+let mlMap,overlay;
+
+function flyTo({longitude,latitude,zoom,pitch,bearing,transitionDuration}){
+  if(!mlMap)return;
+  mlMap.easeTo({
+    center:[longitude??mlMap.getCenter().lng,latitude??mlMap.getCenter().lat],
+    zoom:zoom??mlMap.getZoom(),
+    pitch:pitch??mlMap.getPitch(),
+    bearing:bearing??mlMap.getBearing(),
+    duration:transitionDuration??500
+  });
+}
+
+const deckgl={setProps:({initialViewState,layers})=>{
+  if(initialViewState)flyTo(initialViewState);
+  if(layers)overlay?.setProps({layers});
+}};
+
+mlMap=new maplibregl.Map({
+  container:'map',style:MAPBOX_RASTER_STYLE,
+  center:[158.700,53.015],zoom:12.5,pitch:0,bearing:0,maxPitch:60
 });
 
 const{MapboxOverlay}=deck;
-const overlay=new MapboxOverlay({interleaved:false,layers:[],onClick:info=>handleMapClick(info)});
+overlay=new MapboxOverlay({interleaved:false,layers:[],onClick:info=>handleMapClick(info)});
 mlMap.addControl(overlay);
-
 mlMap.on('dragstart',()=>{
   closePopup();
   if(S.followVehicleId){S.followVehicleId=null;setText('chip-txt','Режим слежения отключён');}
@@ -3386,22 +3404,7 @@ mlMap.on('move',()=>{
   if(!S.route)queueNearbyUpdate(false);
   scheduleOverlayUpdate();
 });
-
-function flyTo({longitude,latitude,zoom,pitch,bearing,transitionDuration}){
-  mlMap.easeTo({
-    center:[longitude??mlMap.getCenter().lng, latitude??mlMap.getCenter().lat],
-    zoom:zoom??mlMap.getZoom(),
-    pitch:pitch??mlMap.getPitch(),
-    bearing:bearing??mlMap.getBearing(),
-    duration:transitionDuration??500
-  });
-}
-
-// совместимость: deckgl.setProps({initialViewState: ...}) → flyTo(...)
-const deckgl={setProps:({initialViewState,layers})=>{
-  if(initialViewState)flyTo(initialViewState);
-  if(layers)overlay.setProps({layers});
-}};
+mlMap.once('load',()=>setTimeout(precacheRegionTiles,5000));
 
 window.addEventListener('resize',()=>{
   if(!S.route)queueNearbyUpdate(false);
@@ -3409,6 +3412,7 @@ window.addEventListener('resize',()=>{
 });
 window.addEventListener('online',()=>startRealtime());
 window.addEventListener('offline',()=>enableOfflineSimulation('нет сети'));
+applyFirstOpenOrientation();
 
 // ── OFFLINE TILE PRECACHE ─────────────────────────────────────
 function lon2tile(lon,z){return Math.floor((lon+180)/360*Math.pow(2,z));}
@@ -3435,9 +3439,6 @@ function precacheRegionTiles(){
   console.log('[offline] precaching',urls.length,'tiles for PKC region');
 }
 
-// Запускаем через 5 сек после старта — после загрузки GTFS и карты
-mlMap.once('load',()=>setTimeout(precacheRegionTiles,5000));
-setTimeout(applyFirstOpenOrientation,0);
 
 function dynSizes(){
   const z=S.zoom;
