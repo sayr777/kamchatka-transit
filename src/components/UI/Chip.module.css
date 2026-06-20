@@ -1,0 +1,14 @@
+.chip {
+  position: absolute;
+  bottom: 120px; left: 50%; transform: translateX(-50%);
+  background: rgba(28,28,30,.85);
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 14px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 20;
+  animation: fadeIn .2s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(6px); } }

@@ -16,3 +16,4 @@ __pycache__/
 # Large media (не нужны в репо)
 *.mp4
 *.mov
+node_modules

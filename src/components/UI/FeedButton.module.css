@@ -1,0 +1,1 @@
+.feed { bottom: 80px; bottom: calc(80px + env(safe-area-inset-bottom)); font-size: 18px; line-height: 1; }

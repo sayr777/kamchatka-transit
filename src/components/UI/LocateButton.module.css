@@ -1,0 +1,1 @@
+.locate { bottom: 32px; bottom: calc(32px + env(safe-area-inset-bottom)); }
