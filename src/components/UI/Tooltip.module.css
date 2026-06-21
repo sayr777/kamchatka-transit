@@ -7,8 +7,6 @@
 }
 
 .tip {
-  position: absolute;
-  z-index: 40;
   padding: 6px 11px;
   border-radius: 10px;
   background: var(--btn-glass-solid);
@@ -22,51 +20,23 @@
   line-height: 1.35;
   white-space: nowrap;
   pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 0.16s ease 0.3s,
-    transform 0.16s ease 0.3s,
-    visibility 0s linear 0.46s;
 }
 
-.sideLeft .tip {
-  right: calc(100% + 10px);
-  top: 50%;
-  transform: translateY(-50%) translateX(6px);
+.tipFixed {
+  position: fixed;
+  z-index: 1200;
+  opacity: 1;
+  visibility: visible;
 }
 
-.sideBottom .tip {
-  top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%) translateY(-4px);
+.sideLeft.tipFixed {
+  transform: translate(-100%, -50%);
 }
 
-.sideTop .tip {
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%) translateY(4px);
+.sideBottom.tipFixed {
+  transform: translate(-50%, 0);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .host:hover .tip,
-  .host:focus-within .tip {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(-50%) translateX(0);
-    transition:
-      opacity 0.16s ease 0.3s,
-      transform 0.16s ease 0.3s,
-      visibility 0s;
-  }
-
-  .sideBottom.host:hover .tip,
-  .sideBottom.host:focus-within .tip {
-    transform: translateX(-50%) translateY(0);
-  }
-
-  .sideTop.host:hover .tip,
-  .sideTop.host:focus-within .tip {
-    transform: translateX(-50%) translateY(0);
-  }
+.sideTop.tipFixed {
+  transform: translate(-50%, -100%);
 }

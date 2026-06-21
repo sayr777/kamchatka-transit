@@ -1,3 +1,6 @@
+import { resolveVehicleIconType } from '../components/Map/vehicleIcons.js';
+import { bearingOnPath, shapePointsToPath } from './routePath.js';
+
 /** Resolve GTFS route_id from a realtime vehicle payload. */
 export function resolveVehicleRouteId(vehicle, tripToRoute) {
   if (!vehicle) return null;
@@ -33,20 +36,38 @@ export function getVisibleVehicles(state) {
     .filter((v) => v && allowed.has(v.routeId));
 }
 
-import { resolveVehicleIconType } from '../components/Map/vehicleIcons.js';
+/** Geographic bearing aligned to the route polyline when shape data is available. */
+export function resolveVehicleBearing(vehicle, ctx = {}) {
+  const raw = Number(vehicle?.bearing);
+  const hint = Number.isFinite(raw) ? raw : null;
+  const routeId = vehicle?.routeId;
+  if (!routeId) return hint ?? 0;
+
+  const shapeId = ctx.firstShapeByRoute?.get?.(routeId);
+  if (!shapeId) return hint ?? 0;
+
+  const path = shapePointsToPath(ctx.shapesByShapeId?.get?.(shapeId));
+  if (path.length < 2) return hint ?? 0;
+
+  return bearingOnPath(path, vehicle.lon, vehicle.lat, hint);
+}
 
 /** Normalize vehicles once when ingesting realtime data. */
-export function normalizeVehicles(rawVehicles, tripToRoute, routeMetaById, vehicleTypeById) {
+export function normalizeVehicles(rawVehicles, tripToRoute, routeMetaById, vehicleTypeById, shapeCtx) {
   return (rawVehicles || []).map((v) => {
     const routeId = resolveVehicleRouteId(v, tripToRoute);
     const meta = routeId ? routeMetaById?.get?.(routeId) : null;
     const vehicleType = vehicleTypeById?.get?.(v.id)
       ?? vehicleTypeById?.get?.(v.vehicle_id);
-    return {
+    const normalized = {
       ...v,
       routeId,
       label: v.label || meta?.shortName || meta?.name || '',
       routeType: resolveVehicleIconType(meta, { ...v, vehicleType }),
+    };
+    return {
+      ...normalized,
+      bearing: resolveVehicleBearing(normalized, shapeCtx),
     };
   }).filter((v) => v.lon && v.lat);
 }

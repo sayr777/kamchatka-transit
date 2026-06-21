@@ -30,7 +30,8 @@ function flushPending() {
 }
 
 function ingestVehicles(rawList) {
-  const { tripToRoute, routeMetaById, vehicleTypeById } = useAppStore.getState();
+  const { tripToRoute, routeMetaById, vehicleTypeById, firstShapeByRoute, shapesByShapeId } = useAppStore.getState();
+  const shapeCtx = { firstShapeByRoute, shapesByShapeId };
   const vehicles = normalizeVehicles(
     (rawList || []).map((v) => {
       const id = v.id || v.vehicle_id;
@@ -59,6 +60,7 @@ function ingestVehicles(rawList) {
     tripToRoute,
     routeMetaById,
     vehicleTypeById,
+    shapeCtx,
   );
 
   pendingVehicles = vehicles;
@@ -162,13 +164,14 @@ function startSimulation() {
       v.pathT = pathT;
       const pos = samplePath(v.path, pathT);
       if (!pos) return null;
+      const bearing = v.pathDir < 0 ? (pos.bearing + 180) % 360 : pos.bearing;
       return {
         id: v.id,
         routeId: v.routeId,
         label: v.label,
         lon: pos.lon,
         lat: pos.lat,
-        bearing: pos.bearing,
+        bearing,
         speed: 18 + Math.random() * 8,
         updatedAt: Date.now(),
       };

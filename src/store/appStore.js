@@ -166,22 +166,14 @@ export const useAppStore = create((set, get) => ({
   })),
   togglePlanner: () => {
     const s = get();
-    if (!s.plannerOpen) {
-      let pickMode = null;
-      if (!s.plannerFrom) pickMode = 'from';
-      else if (!s.plannerTo) pickMode = 'to';
-      set({ plannerOpen: true, plannerPickMode: pickMode });
+    if (s.plannerOpen) {
+      set({ plannerOpen: false, plannerPickMode: null });
       return;
     }
-    if (!s.plannerFrom) {
-      set({ plannerPickMode: 'from' });
-      return;
-    }
-    if (!s.plannerTo) {
-      set({ plannerPickMode: 'to' });
-      return;
-    }
-    set({ plannerPickMode: s.plannerPickMode ? null : 'from' });
+    let pickMode = null;
+    if (!s.plannerFrom) pickMode = 'from';
+    else if (!s.plannerTo) pickMode = 'to';
+    set({ plannerOpen: true, plannerPickMode: pickMode });
   },
   setPlannerLonLat: (target, lon, lat, meta = {}) => {
     const state = get();

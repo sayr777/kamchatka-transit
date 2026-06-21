@@ -4,8 +4,9 @@ import {
   getFocusedRouteIds,
   getVisibleVehicles,
   normalizeVehicles,
+  resolveVehicleBearing,
 } from '../../src/utils/vehicleVisibility.js';
-import { samplePath, shapePointsToPath } from '../../src/utils/routePath.js';
+import { bearingOnPath, samplePath, shapePointsToPath } from '../../src/utils/routePath.js';
 
 describe('vehicleVisibility', () => {
   const tripToRoute = new Map([['trip_1', 'route_a']]);
@@ -51,6 +52,17 @@ describe('vehicleVisibility', () => {
       routeMetaById,
     );
     expect(out[0].label).toBe('3');
+    expect(out[0].routeType).toBe(3);
+  });
+
+  it('assigns minibus icon type from route meta', () => {
+    const meta = new Map([['route_m', { shortName: '6к', routeType: 200 }]]);
+    const out = normalizeVehicles(
+      [{ id: 'v1', routeId: 'route_m', lon: 158.7, lat: 53.01 }],
+      new Map(),
+      meta,
+    );
+    expect(out[0].routeType).toBe(200);
   });
 });
 
@@ -64,5 +76,31 @@ describe('routePath', () => {
     expect(pos.lon).toBeCloseTo(158.705, 3);
     expect(pos.lat).toBeCloseTo(53.015, 3);
     expect(pos.bearing).toBeGreaterThan(0);
+  });
+
+  it('aligns bearing to nearest route segment', () => {
+    const path = shapePointsToPath([
+      { shape_pt_lon: '158.70', shape_pt_lat: '53.01' },
+      { shape_pt_lon: '158.72', shape_pt_lat: '53.01' },
+    ]);
+    expect(bearingOnPath(path, 158.71, 53.01, null)).toBe(90);
+    expect(bearingOnPath(path, 158.71, 53.01, 270)).toBe(270);
+  });
+});
+
+describe('resolveVehicleBearing', () => {
+  it('snaps bearing to route shape when available', () => {
+    const shapeCtx = {
+      firstShapeByRoute: new Map([['route_a', 'shape_1']]),
+      shapesByShapeId: new Map([['shape_1', [
+        { shape_pt_lon: '158.70', shape_pt_lat: '53.01' },
+        { shape_pt_lon: '158.72', shape_pt_lat: '53.01' },
+      ]]]),
+    };
+    const bearing = resolveVehicleBearing(
+      { routeId: 'route_a', lon: 158.71, lat: 53.01, bearing: 0 },
+      shapeCtx,
+    );
+    expect(bearing).toBe(90);
   });
 });

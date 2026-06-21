@@ -80,10 +80,23 @@ export default function App() {
 
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelTab, setPanelTab] = useState('stops');
-  const openPanel = useCallback((tab = 'stops') => {
-    setPanelTab(tab);
+  const toggleFavoritesPanel = useCallback(() => {
+    if (panelOpen && panelTab === 'favorites') {
+      setPanelOpen(false);
+      return;
+    }
+    setPanelTab('favorites');
     setPanelOpen(true);
-  }, []);
+  }, [panelOpen, panelTab]);
+
+  const toggleConditionsPanel = useCallback(() => {
+    if (panelOpen && panelTab === 'conditions') {
+      setPanelOpen(false);
+      return;
+    }
+    setPanelTab('conditions');
+    setPanelOpen(true);
+  }, [panelOpen, panelTab]);
 
   const handleMapClick = useCallback((info) => {
     if (!info.object) return;
@@ -111,8 +124,8 @@ export default function App() {
         <TiltButton />
         <SearchBar />
         <PlannerButton />
-        <FavoritesButton onOpen={() => openPanel('favorites')} />
-        <ConditionsButton onOpen={() => openPanel('conditions')} />
+        <FavoritesButton active={panelOpen && panelTab === 'favorites'} onToggle={toggleFavoritesPanel} />
+        <ConditionsButton active={panelOpen && panelTab === 'conditions'} onToggle={toggleConditionsPanel} />
         <div className={styles.fabSpacer} aria-hidden="true" />
         <FeedButton />
         <LocateButton />

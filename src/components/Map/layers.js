@@ -2,7 +2,7 @@ import { PathLayer, ScatterplotLayer, TextLayer, IconLayer } from '@deck.gl/laye
 import { getVehicleIconUrl, resolveVehicleIconType } from './vehicleIcons';
 import { buildRoutePathEntries, collectStopsForRoutes } from '../../utils/stopFocus';
 import { hexRgb } from '../../utils/geo';
-import { getFocusedRouteIds, getVisibleVehicles } from '../../utils/vehicleVisibility';
+import { getFocusedRouteIds, getVisibleVehicles, resolveVehicleBearing } from '../../utils/vehicleVisibility';
 
 function dynSizes(zoom) {
   const z = zoom ?? 12;
@@ -98,23 +98,23 @@ function appendVehicleLayers(layers, vehicles, s, sz, F, prefix, opts = {}) {
         const routeType = d.routeType ?? resolveVehicleIconType(meta, d);
         return {
           url: getVehicleIconUrl(routeType, hex),
-          width: 40,
-          height: 64,
-          anchorX: 20,
-          anchorY: 32,
+          width: 48,
+          height: 48,
+          anchorX: 24,
+          anchorY: 24,
           mask: false,
         };
       },
       getSize: (d) => iconSize + (d.id === selectedId ? 4 : 0),
       sizeUnits: 'pixels',
-      getAngle: (d) => d.bearing || 0,
-      billboard: false,
+      getAngle: (d) => resolveVehicleBearing(d, s) - (s.viewState?.bearing ?? 0),
+      billboard: true,
       alphaCutoff: 0.05,
       parameters: { depthTest: false },
       updateTriggers: {
         getIcon: [s.vehicleTick, selectedId, routeFocus],
         getSize: [sz.busR, selectedId, routeFocus],
-        getAngle: s.vehicleTick,
+        getAngle: [s.vehicleTick, s.viewState?.bearing ?? 0],
         getPosition: s.vehicleTick,
       },
     }),
