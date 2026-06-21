@@ -1,0 +1,18 @@
+---
+pid: 3024
+cwd: "C:\T1_GIT\pwa"
+command: "npm run dev"
+started_at: 2026-06-21T09:05:03.845Z
+running_for_ms: 55045    
+---
+��ப�:1 ����:22
++ (cd "C:\\T1_GIT\\pwa" ; npm run dev)
++                      ~
+�������� ����뢠�騩 ���� ")" � ��ࠦ����.
+��ப�:1 ����:36
++ (cd "C:\\T1_GIT\\pwa" ; npm run dev)
++                                    ~
+��।�������� ���ᥬ� ")" � ��ࠦ���� ��� ������.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : MissingEndParenthesisInExpression
+ 

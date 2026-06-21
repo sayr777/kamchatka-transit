@@ -1,0 +1,120 @@
+---
+pid: 23028
+cwd: "C:\T1_GIT\pwa"
+command: "Set-Location C:\\T1_GIT\\pwa; npm run dev"
+started_at: 2026-06-21T11:59:10.079Z
+running_for_ms: 22110001 
+---
+
+> pwa@1.0.0 dev
+> vite --port 5173
+
+Port 5173 is in use, trying another one...
+Port 5174 is in use, trying another one...
+
+  VITE v8.0.16  ready in 216 ms
+
+  ➜  Local:   http://localhost:5175/
+  ➜  Network: use --host to expose
+14:59:56 [vite] (client) ✨ new dependencies optimized: jszip, papaparse
+14:59:56 [vite] (client) ✨ optimized dependencies changed. reloading
+15:04:46 [vite] (client) hmr update /src/App.jsx
+15:04:46 [vite] (client) hmr update /src/components/UI/PlannerButton.jsx, /src/components/UI/FavoritesButton.jsx, /src/components/UI/LocateButton.jsx, /src/components/UI/FeedButton.jsx, /src/components/UI/ConditionsButton.jsx, /src/components/UI/TiltButton.jsx
+15:04:46 [vite] (client) hmr update /src/components/UI/SearchBar.jsx
+15:04:46 [vite] (client) hmr update /src/components/UI/PlannerButton.jsx
+15:04:46 [vite] (client) hmr update /src/components/UI/FeedButton.jsx
+15:04:46 [vite] (client) hmr update /src/components/UI/ConditionsButton.jsx
+15:04:46 [vite] (client) hmr update /src/components/UI/LocateButton.jsx
+15:04:46 [vite] (client) hmr update /src/App.jsx
+15:04:46 [vite] (client) hmr update /src/components/UI/FavoritesButton.jsx
+15:04:46 [vite] (client) hmr update /src/components/UI/TiltButton.jsx
+15:05:49 [vite] (client) hmr update /src/App.jsx, /src/components/UI/PlannerButton.jsx, /src/components/UI/SearchBar.jsx, /src/components/UI/FavoritesButton.jsx, /src/components/UI/LocateButton.jsx, /src/components/UI/FeedButton.jsx, /src/components/UI/ConditionsButton.jsx, /src/components/UI/TiltButton.jsx, /src/components/Splash.jsx, /src/components/Panel/Panel.jsx, /src/components/StopPopup/StopPopup.jsx, /src/components/Planner/PlannerPanel.jsx, /src/components/UI/Chip.jsx, /src/components/UI/WeatherWidget.jsx and 3 more
+15:05:49 [vite] (client) hmr update /src/App.jsx, /src/components/UI/PlannerButton.jsx, /src/components/UI/SearchBar.jsx, /src/components/UI/FavoritesButton.jsx, /src/components/UI/LocateButton.jsx, /src/components/UI/FeedButton.jsx, /src/components/UI/ConditionsButton.jsx, /src/components/UI/TiltButton.jsx, /src/components/Splash.jsx, /src/components/Panel/Panel.jsx, /src/components/StopPopup/StopPopup.jsx, /src/components/Planner/PlannerPanel.jsx, /src/components/UI/Chip.jsx, /src/components/UI/WeatherWidget.jsx and 3 more
+15:05:59 [vite] (client) hmr update /src/components/UI/TiltButton.jsx
+15:05:59 [vite] (client) hmr update /src/components/UI/FavoritesButton.jsx
+15:05:59 [vite] (client) hmr update /src/components/UI/ConditionsButton.jsx
+15:05:59 [vite] (client) hmr update /src/components/UI/FeedButton.jsx
+15:05:59 [vite] (client) hmr update /src/components/UI/LocateButton.jsx
+15:05:59 [vite] (client) hmr update /src/components/UI/PlannerButton.jsx
+15:06:05 [vite] (client) hmr update /src/components/UI/SearchBar.jsx
+15:06:05 [vite] (client) hmr update /src/components/UI/WeatherWidget.jsx
+15:06:16 [vite] (client) hmr update /src/components/Planner/PlannerPanel.jsx
+15:06:16 [vite] (client) hmr update /src/components/UI/RouteChip.jsx
+15:06:16 [vite] (client) hmr update /src/components/UI/StopChip.jsx
+15:06:16 [vite] (client) hmr update /src/components/UI/WeatherWidget.jsx
+15:06:16 [vite] (client) hmr update /src/components/UI/SearchBar.jsx
+15:06:17 [vite] (client) hmr update /src/components/UI/StopChip.jsx
+15:06:17 [vite] Internal server error: Transform failed with 2 errors:
+
+[PARSE_ERROR] Expected corresponding JSX closing tag for 'Tooltip'.
+    ╭─[ src/components/UI/StopChip.jsx:77:7 ]
+    │
+ 45 │       <Tooltip label={stop.stop_name || stop.name} side="bottom">
+    │        ───┬───  
+    │           ╰───── Opened here
+    │ 
+ 77 │     </div>
+    │       ─┬─  
+    │        ╰─── Expected `</Tooltip>`
+────╯
+
+[PARSE_ERROR] Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+    ╭─[ src/components/UI/StopChip.jsx:79:1 ]
+    │
+ 79 │ }
+    │ │ 
+    │ ╰─ 
+────╯
+
+  Plugin: vite:oxc
+  File: C:/T1_GIT/pwa/src/components/UI/StopChip.jsx
+      at transformWithOxc (file:///C:/T1_GIT/pwa/node_modules/vite/dist/node/chunks/node.js:3344:19)
+      at TransformPluginContext.transform (file:///C:/T1_GIT/pwa/node_modules/vite/dist/node/chunks/node.js:3415:26)
+      at EnvironmentPluginContainer.transform (file:///C:/T1_GIT/pwa/node_modules/vite/dist/node/chunks/node.js:30387:51)
+      at async loadAndTransform (file:///C:/T1_GIT/pwa/node_modules/vite/dist/node/chunks/node.js:24646:26)
+      at async viteTransformMiddleware (file:///C:/T1_GIT/pwa/node_modules/vite/dist/node/chunks/node.js:24440:20)
+15:06:29 [vite] (client) hmr update /src/components/Planner/PlannerPanel.jsx
+15:06:29 [vite] (client) hmr update /src/components/UI/StopChip.jsx
+15:06:29 [vite] (client) hmr update /src/components/Planner/PlannerPanel.jsx
+20:13:18 [vite] (client) hmr update /src/App.jsx
+20:15:12 [vite] (client) hmr update /src/components/Map/MapView.jsx
+20:15:12 [vite] (client) hmr update /src/App.jsx
+20:15:12 [vite] (client) hmr update /src/components/Map/MapView.jsx
+20:15:35 [vite] (client) hmr update /src/App.jsx
+20:15:35 [vite] (client) hmr update /src/App.jsx, /src/components/UI/PlannerButton.jsx, /src/components/UI/SearchBar.jsx, /src/components/UI/FavoritesButton.jsx, /src/components/UI/LocateButton.jsx, /src/components/UI/FeedButton.jsx, /src/components/UI/TiltButton.jsx, /src/components/Splash.jsx, /src/components/UI/ConditionsButton.jsx, /src/components/Panel/Panel.jsx, /src/components/StopPopup/StopPopup.jsx, /src/components/Planner/PlannerPanel.jsx, /src/components/Map/MapView.jsx, /src/components/UI/WeatherWidget.jsx and 3 more
+20:15:35 [vite] (client) hmr update /src/components/Map/MapView.jsx
+20:15:43 [vite] (client) hmr update /src/components/Map/MapView.jsx, /src/App.jsx
+20:15:56 [vite] (client) hmr update /src/App.jsx, /src/components/UI/PlannerButton.jsx, /src/components/UI/SearchBar.jsx, /src/components/UI/FavoritesButton.jsx, /src/components/UI/LocateButton.jsx, /src/components/UI/FeedButton.jsx, /src/components/UI/TiltButton.jsx, /src/components/Splash.jsx, /src/components/UI/ConditionsButton.jsx, /src/components/Panel/Panel.jsx, /src/components/StopPopup/StopPopup.jsx, /src/components/Planner/PlannerPanel.jsx, /src/components/Map/MapView.jsx, /src/components/UI/WeatherWidget.jsx and 3 more
+20:20:09 [vite] (client) hmr update /src/App.jsx, /src/components/UI/PlannerButton.jsx, /src/components/UI/SearchBar.jsx, /src/components/UI/FavoritesButton.jsx, /src/components/UI/LocateButton.jsx, /src/components/UI/FeedButton.jsx, /src/components/UI/TiltButton.jsx, /src/components/Splash.jsx, /src/components/UI/ConditionsButton.jsx, /src/components/Panel/Panel.jsx, /src/components/StopPopup/StopPopup.jsx, /src/components/Planner/PlannerPanel.jsx, /src/components/Map/MapView.jsx, /src/components/UI/WeatherWidget.jsx and 3 more
+20:20:09 [vite] (client) hmr update /src/App.jsx
+20:20:09 [vite] (client) hmr update /src/App.jsx
+20:20:09 [vite] (client) page reload src/gtfs/gtfs.worker.js
+20:20:09 [vite] (client) page reload src/gtfs/gtfs.worker.js
+20:21:15 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:21:15 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:21:58 [vite] (client) hmr update /src/App.jsx, /src/components/UI/PlannerButton.jsx, /src/components/UI/SearchBar.jsx, /src/components/UI/FavoritesButton.jsx, /src/components/UI/LocateButton.jsx, /src/components/UI/FeedButton.jsx, /src/components/UI/ConditionsButton.jsx, /src/components/UI/TiltButton.jsx, /src/components/Splash.jsx, /src/components/Panel/Panel.jsx, /src/components/StopPopup/StopPopup.jsx, /src/components/Planner/PlannerPanel.jsx, /src/components/UI/Chip.jsx, /src/components/UI/WeatherWidget.jsx and 3 more
+20:21:58 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:21:58 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:22:48 [vite] (client) hmr update /src/App.jsx, /src/components/UI/PlannerButton.jsx, /src/components/UI/SearchBar.jsx, /src/components/UI/FavoritesButton.jsx, /src/components/UI/LocateButton.jsx, /src/components/UI/FeedButton.jsx, /src/components/UI/ConditionsButton.jsx, /src/components/UI/TiltButton.jsx, /src/components/Splash.jsx, /src/components/Panel/Panel.jsx, /src/components/StopPopup/StopPopup.jsx, /src/components/Planner/PlannerPanel.jsx, /src/components/UI/Chip.jsx, /src/components/UI/WeatherWidget.jsx and 3 more
+20:24:11 [vite] (client) hmr update /src/App.jsx, /src/components/UI/PlannerButton.jsx, /src/components/UI/SearchBar.jsx, /src/components/UI/FavoritesButton.jsx, /src/components/UI/LocateButton.jsx, /src/components/UI/FeedButton.jsx, /src/components/UI/ConditionsButton.jsx, /src/components/UI/TiltButton.jsx, /src/components/Splash.jsx, /src/components/Panel/Panel.jsx, /src/components/StopPopup/StopPopup.jsx, /src/components/Planner/PlannerPanel.jsx, /src/components/UI/Chip.jsx, /src/components/UI/WeatherWidget.jsx and 3 more
+20:26:01 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:26:01 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:26:19 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:27:16 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:27:16 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:27:52 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:27:52 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:28:59 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:28:59 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:28:59 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:30:25 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:30:25 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:30:25 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:34:58 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:43:13 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:44:39 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:44:39 [vite] (client) hmr update /src/App.jsx, /src/components/UI/PlannerButton.jsx, /src/components/UI/SearchBar.jsx, /src/components/UI/FavoritesButton.jsx, /src/components/UI/LocateButton.jsx, /src/components/UI/FeedButton.jsx, /src/components/UI/ConditionsButton.jsx, /src/components/UI/TiltButton.jsx, /src/components/Splash.jsx, /src/components/Panel/Panel.jsx, /src/components/StopPopup/StopPopup.jsx, /src/components/Planner/PlannerPanel.jsx, /src/components/UI/Chip.jsx, /src/components/UI/WeatherWidget.jsx and 3 more
+20:44:39 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:44:39 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx
+20:44:39 [vite] (client) hmr update /src/App.jsx, /src/components/UI/PlannerButton.jsx, /src/components/UI/SearchBar.jsx, /src/components/UI/FavoritesButton.jsx, /src/components/UI/LocateButton.jsx, /src/components/UI/FeedButton.jsx, /src/components/UI/ConditionsButton.jsx, /src/components/UI/TiltButton.jsx, /src/components/Splash.jsx, /src/components/Panel/Panel.jsx, /src/components/StopPopup/StopPopup.jsx, /src/components/Planner/PlannerPanel.jsx, /src/components/UI/Chip.jsx, /src/components/UI/WeatherWidget.jsx and 3 more
+20:45:48 [vite] (client) hmr update /src/components/StopPopup/StopPopup.jsx

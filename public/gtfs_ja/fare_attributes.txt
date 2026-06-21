@@ -1,0 +1,2 @@
+"fare_id","price","currency_type","payment_method","transfers","transfer_duration"
+"fare_2603281016_07775","50","RUB","0","0",""

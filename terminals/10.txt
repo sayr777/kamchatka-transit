@@ -1,0 +1,21 @@
+---
+pid: 15464
+cwd: "C:\T1_GIT\pwa"
+command: "cmd /c \"cd /d C:\\T1_GIT\\pwa && npm run dev\""
+started_at: 2026-06-21T09:30:26.324Z
+running_for_ms: 31030008 
+---
+
+> pwa@1.0.0 dev
+> vite --port 5173
+
+Port 5173 is in use, trying another one...
+
+  VITE v8.0.16  ready in 214 ms
+
+  ➜  Local:   http://localhost:5174/
+  ➜  Network: use --host to expose
+12:34:02 [vite] (client) page reload public/app.html
+12:34:02 [vite] (client) page reload public/app.html
+12:34:02 [vite] (client) page reload public/app.html
+12:34:02 [vite] (client) page reload public/app.html

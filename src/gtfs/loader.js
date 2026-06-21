@@ -1,11 +1,12 @@
-const CACHE_NAME = 'gtfs-feeds-v1';
-const BASE = 'https://sayr777.github.io/kamchatka-transit/public';
+const CACHE_NAME = 'gtfs-feeds-v2';
+const BASE = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/');
 
+/** Локальные архивы из public/; соответствуют языку интерфейса (ru/en/zh/ja). */
 const FEEDS = {
-  ru: `${BASE}/gtfs_ru.zip`,
-  en: `${BASE}/gtfs_en.zip`,
-  zh: `${BASE}/gtfs_cn.zip`,
-  ja: `${BASE}/gtfs_jp.zip`,
+  ru: `${BASE}gtfs_ru.zip`,
+  en: `${BASE}gtfs_en.zip`,
+  zh: `${BASE}gtfs_cn.zip`,
+  ja: `${BASE}gtfs_jp.zip`,
 };
 
 async function fetchWithCache(url) {
@@ -54,9 +55,17 @@ export function loadGtfsFeed(lang, onProgress) {
           arrivalsByStopId:    new Map(Object.entries(data.arrivalsByStopId)),
           tripToService:       new Map(Object.entries(data.tripToService)),
           tripToRoute:         new Map(Object.entries(data.tripToRoute)),
+          tripMetaById:        new Map(Object.entries(data.tripMetaById || {})),
+          frequenciesByTripId: new Map(Object.entries(data.frequenciesByTripId || {})),
+          tripFirstDepMinByTripId: new Map(Object.entries(data.tripFirstDepMinByTripId || {})),
           calendarByServiceId: new Map(Object.entries(data.calendarByServiceId)),
           shapesByShapeId:     new Map(Object.entries(data.shapesByShapeId)),
           firstShapeByRoute:   new Map(Object.entries(data.firstShapeByRoute)),
+          stopIdsByRouteId:    new Map(Object.entries(data.stopIdsByRouteId || {})),
+          routeIdsByStopId:    new Map(Object.entries(data.routeIdsByStopId || {})),
+          routeConditionsById: new Map(Object.entries(data.routeConditionsById || {})),
+          vehicleTypeById:       new Map(Object.entries(data.vehicleTypeById || {})),
+          plannerAdjacency: new Map(Object.entries(data.plannerAdjacency || {})),
         };
         resolve(result);
       } else if (type === 'error') {

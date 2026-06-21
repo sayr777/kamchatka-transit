@@ -1,0 +1,20 @@
+.bar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 15;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 32px);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bar::-webkit-scrollbar { display: none; }
+
+@media (max-width: 480px) {
+  .bar { left: 12px; max-width: calc(100vw - 24px); }
+}

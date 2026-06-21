@@ -1,5 +1,9 @@
 # Брендинг интерфейса
 
+> PWA-манифест: `vite.config.js` → `VitePWA.manifest`.  
+> Иконки: `public/icons/icon-192.png`, `icon-512.png`.  
+> Theme color: `#FC3F1D`.
+
 Основное название продукта:
 - Русский: Камчатка.Транспорт
 - English: Kamchatka Transit

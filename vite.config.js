@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { weatherProxyPlugin } from './vite-plugins/weatherProxy.js';
 
 export default defineConfig({
   plugins: [
+    weatherProxyPlugin(),
     react(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -18,6 +20,16 @@ export default defineConfig({
               cacheName: 'mapbox-tiles',
               expiration: { maxEntries: 6000, maxAgeSeconds: 60 * 60 * 24 * 30 },
               cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /\/api\/weather/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'yandex-weather-api',
+              expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 },
+              cacheableResponse: { statuses: [200] },
+              networkTimeoutSeconds: 8,
             },
           },
           {

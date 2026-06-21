@@ -1,0 +1,186 @@
+/** Словарь переводов текстовых полей GTFS: ru → en / zh / ja */
+
+export const AGENCY = {
+  'АО «Автопарк»': {
+    en: 'Avtopark JSC',
+    zh: '汽车运输公司',
+    ja: 'アヴトパーク株式会社',
+  },
+};
+
+export const STOPS = {
+  'Стройгородок': { en: 'Construction Town', zh: '建设城', ja: '建設町' },
+  'Институт вулканологии': { en: 'Institute of Volcanology', zh: '火山研究所', ja: '火山研究所' },
+  'Краевая библиотека': { en: 'Regional Library', zh: '州立图书馆', ja: '州立図書館' },
+  'Камчатский педагогический колледж': { en: 'Kamchatka Pedagogical College', zh: '堪察加师范学院', ja: 'カムチャツカ師範学院' },
+  'Камечатский педагогический колледж': { en: 'Kamchatka Pedagogical College', zh: '堪察加师范学院', ja: 'カムチャツカ師範学院' },
+  'Типография': { en: 'Printing House', zh: '印刷厂', ja: '印刷所' },
+  'АО "Геотерм"': { en: 'Geotherm JSC', zh: '地热公司', ja: 'ゲオテルム株式会社' },
+  'Строительный рынок': { en: 'Construction Market', zh: '建材市场', ja: '建材市場' },
+  'Горизонт-Север': { en: 'Gorizont-Sever', zh: '地平线-北部', ja: 'ホリゾント・ノルド' },
+  'ул. Академика Королева': { en: 'Academician Korolev St.', zh: '科罗廖夫院士街', ja: 'コロレフ院士通り' },
+  'Детский сад "Родничок"': { en: 'Rodnichok Kindergarten', zh: '罗迪奇奥克幼儿园', ja: 'ロドニチョク保育園' },
+  'Статуправление': { en: 'Regional Government', zh: '州政府', ja: '州政府庁' },
+  'УВД': { en: 'Police Department', zh: '警察局', ja: '警察署' },
+  'Краевая больница': { en: 'Regional Hospital', zh: '州立医院', ja: '州立病院' },
+  'Комсомольская площадь': { en: 'Komsomol Square', zh: '共青团广场', ja: 'コムソモール広場' },
+  'Стадион "Спартак"': { en: 'Spartak Stadium', zh: '斯巴达克体育场', ja: 'スパルタクスタジアム' },
+  'Култучное озеро': { en: 'Lake Kultuchnoye', zh: '库尔图奇湖', ja: 'クルトゥチ湖' },
+  'ул. Озерновская коса': { en: 'Ozernovskaya Spit St.', zh: '湖岸沙咀街', ja: 'オゼルノフスカヤ砂州通り' },
+  'Драмтеатр': { en: 'Drama Theatre', zh: '话剧院', ja: '劇場' },
+  'Аллея флота': { en: 'Fleet Alley', zh: '舰队林荫道', ja: '艦隊通り' },
+  'ул. Чубарова': { en: 'Chubarov St.', zh: '丘巴罗夫街', ja: 'チュバロフ通り' },
+  'Магазин "Детский"': { en: 'Detsky Store', zh: '儿童商店', ja: 'デーツキー店' },
+  'Погрангородок': { en: 'Border Town', zh: '边防城', ja: '国境町' },
+  'Кукольный театр': { en: 'Puppet Theatre', zh: '木偶剧院', ja: '人形劇場' },
+  'ул. Звёздная': { en: 'Zvyozdnaya St.', zh: '星星街', ja: 'ズヴョーズドナヤ通り' },
+  'Торговый центр "БАМ"': { en: 'BAM Shopping Center', zh: 'BAM购物中心', ja: 'BAMショッピングセンター' },
+  'Проспект Циолковского': { en: 'Tsiolkovsky Avenue', zh: '齐奥尔科夫斯基大街', ja: 'ツィオルコフスキー大通り' },
+  'по требованию': { en: 'On request', zh: '按需停靠', ja: '要望により停車' },
+  'Оранжерея': { en: 'Orangery', zh: '温室', ja: 'オランジェリー' },
+  'Полуэкипаж': { en: 'Poluekipazh', zh: '半编制区', ja: 'ポルエキパージ' },
+  'Детский парк': { en: "Children's Park", zh: '儿童公园', ja: '児童公園' },
+  'Городская администрация': { en: 'City Administration', zh: '市政府', ja: '市役所' },
+  'Площадь им. адмирала Щедрина': { en: 'Admiral Shchedrin Square', zh: '舍德里诺夫上将广场', ja: 'シュチェドリン提督広場' },
+  'Красная сопка': { en: 'Krasnaya Sopka', zh: '红山', ja: 'クラスナヤ・ソプカ' },
+  'Школа № 29': { en: 'School No. 29', zh: '29号学校', ja: '第29中学校' },
+  'ул. Рябиковская': { en: 'Ryabikovskaya St.', zh: '里亚比科夫街', ja: 'リャビコフスカヤ通り' },
+  'КамГУ им. В. Беринга': { en: 'KamSU named after V. Bering', zh: '别林国立大学', ja: 'ベーリング記念カムチャツカ州立大学' },
+  'ул. Советская': { en: 'Sovetskaya St.', zh: '苏维埃街', ja: 'ソヴェツカヤ通り' },
+  'Лицей №46': { en: 'Lyceum No. 46', zh: '46号中学', ja: '第46リツェイ' },
+  'МЦ "Ормедиум"': { en: 'Ormedium Medical Center', zh: '奥尔梅迪乌姆医疗中心', ja: 'オルメディウム医療センター' },
+  'ул. Степная': { en: 'Stepnaya St.', zh: '草原街', ja: 'ステプナヤ通り' },
+  'ул. Лизы Чайкиной': { en: 'Liza Chaikina St.', zh: '莉莎·柴金娜街', ja: 'リーザ・チャイキナ通り' },
+  'Хоккейная школа': { en: 'Hockey School', zh: '冰球学校', ja: 'ホッケー学校' },
+  'ул. Солнечная': { en: 'Solnechnaya St.', zh: '阳光街', ja: 'ソルネチナヤ通り' },
+  'Развилка': { en: 'Junction', zh: '岔路口', ja: '分岐点' },
+  'Школа №9': { en: 'School No. 9', zh: '9号学校', ja: '第9中学校' },
+  'Авторынок': { en: 'Car Market', zh: '汽车市场', ja: '中古車市場' },
+  'ул. Владивостокская': { en: 'Vladivostokskaya St.', zh: '符拉迪沃斯托克街', ja: 'ウラジオストク通り' },
+  'Кафедральный собор': { en: 'Cathedral', zh: '主教座堂', ja: '大聖堂' },
+  'ДК КГТУ': { en: 'KSTU Culture House', zh: '工大文化宫', ja: 'KSTU文化会館' },
+  'Городской фонтан': { en: 'City Fountain', zh: '城市喷泉', ja: '市営噴水' },
+  'Детская поликлиника №1': { en: "Children's Polyclinic No. 1", zh: '第一儿童医院', ja: '第1児童診療所' },
+  'Центральный рынок': { en: 'Central Market', zh: '中心市场', ja: '中央市場' },
+  'Проспект Победы': { en: 'Victory Avenue', zh: '胜利大街', ja: '勝利大通り' },
+  'Камчат НИРО': { en: 'Kamchatka Research Institute', zh: '堪察加研究所', ja: 'カムチャツカ研究所' },
+  'ул. Приморская': { en: 'Primorskaya St.', zh: '滨海街', ja: 'プリモルスカヤ通り' },
+  'Гериатрическая больница': { en: 'Geriatric Hospital', zh: '老年病医院', ja: '老人病院' },
+  'ул. Енисейская': { en: 'Yeniseyskaya St.', zh: '叶尼塞街', ja: 'エニセイ通り' },
+  'Авача': { en: 'Avacha', zh: '阿瓦恰', ja: 'アーヴァチャ' },
+  'Школа №37': { en: 'School No. 37', zh: '37号学校', ja: '第37中学校' },
+  'Поисково-спасательная служба': { en: 'Search and Rescue Service', zh: '搜救队', ja: '捜索救助隊' },
+  'Халактырское шоссе': { en: 'Khalaktyr Highway', zh: '哈拉特尔公路', ja: 'ハラクティル幹線道路' },
+  'Халактырский аэропорт': { en: 'Khalaktyr Airport', zh: '哈拉特尔机场', ja: 'ハラクティル空港' },
+  'Халактырское кладбище': { en: 'Khalaktyr Cemetery', zh: '哈拉特尔公墓', ja: 'ハラクティル墓地' },
+  'Асфальтовый завод': { en: 'Asphalt Plant', zh: '沥青厂', ja: 'アスファルト工場' },
+  'Часовня Александра Невского': { en: 'Chapel of Alexander Nevsky', zh: '涅瓦大公小堂', ja: 'アレクサンドル・ネフスキー礼拝堂' },
+  'Сектор 33': { en: 'Sector 33', zh: '33区', ja: 'セクター33' },
+  'Сектор 96': { en: 'Sector 96', zh: '96区', ja: 'セクター96' },
+  'ул. Первомайская': { en: 'Pervomayskaya St.', zh: '五一街', ja: 'ペルヴォマイスカヤ通り' },
+  'Совхоз "Коммунальник"': { en: 'Kommunalnik State Farm', zh: '公社国营农场', ja: 'コムムーナルニク国営農場' },
+  'Тундровый': { en: 'Tundrovyy', zh: '冻原区', ja: 'ツンドロヴィー' },
+  'Козельское лесничество': { en: 'Kozelskoe Forestry', zh: '科泽尔斯基林场', ja: 'コゼリスク森林管理所' },
+  'МТФ': { en: 'Dairy Farm', zh: '乳牛场', ja: '乳牛農場' },
+  'Сапун-гора': { en: 'Sapun Hill', zh: '萨蓬山', ja: 'サプン山' },
+  'ул. Океанская': { en: 'Okeanskaya St.', zh: '海洋街', ja: 'オケアンスカヤ通り' },
+  'ФОК "Водник"': { en: 'Vodnik Sports Complex', zh: '沃特尼克体育中心', ja: 'ヴォドニク体育複合施設' },
+  'Магазин "Стройматериалы"': { en: 'Building Materials Store', zh: '建材商店', ja: '建設資材店' },
+  'ул. Садовая': { en: 'Sadovaya St.', zh: '花园街', ja: 'サドヴァヤ通り' },
+  'Богородское озеро': { en: 'Bogorodskoye Lake', zh: '圣母湖', ja: 'ボゴロツコエ湖' },
+  'Госпиталь': { en: 'Hospital', zh: '医院', ja: '病院' },
+  'ул. Ключевская': { en: 'Klyuchevskaya St.', zh: '钥匙街', ja: 'クリュチェフスカヤ通り' },
+  'Кооперативный техникум': { en: 'Cooperative Technical College', zh: '合作技校', ja: '協同組合技術学院' },
+  'ул. Мишенная': { en: 'Mishennaya St.', zh: '靶场街', ja: 'ミシェンナヤ通り' },
+  'ул. Беринга': { en: 'Bering St.', zh: '别林街', ja: 'ベーリング通り' },
+  'ул. Геологическая': { en: 'Geologicheskaya St.', zh: '地质街', ja: 'ゲオロギチェスカヤ通り' },
+  'Сероглазка': { en: 'Seroglazka', zh: '灰眼区', ja: 'セログラズカ' },
+  'Школа №35': { en: 'School No. 35', zh: '35号学校', ja: '第35中学校' },
+  'Колхоз им. Ленина': { en: 'Lenin Collective Farm', zh: '列宁集体农庄', ja: 'レーニン記念コルホーズ' },
+  'ул. Тундровая': { en: 'Tundrovaya St.', zh: '冻原街', ja: 'ツンドロヴァヤ通り' },
+  'ул. Дальняя': { en: 'Dalnyaya St.', zh: '远方街', ja: 'ダーリニャヤ通り' },
+  'река Кирпичная': { en: 'Kirpichnaya River', zh: '砖河', ja: 'キルピチナヤ川' },
+  'Кирпичики': { en: 'Kirpichiki', zh: '砖厂区', ja: 'キルピチキ' },
+  'ул. Виталия Кручины': { en: 'Vitaly Kruchina St.', zh: '克鲁奇纳街', ja: 'ヴィターリイ・クルーチナ通り' },
+  'Проспект Таранца': { en: 'Tarantsa Avenue', zh: '塔兰茨大街', ja: 'タランツァ大通り' },
+  'ул. Ларина': { en: 'Larina St.', zh: '拉丽娜街', ja: 'ラリナ通り' },
+};
+
+/** Фразы для route_long_name (замена по порядку — длинные фразы первыми). */
+export const ROUTE_PHRASES = {
+  en: [
+    ['10 километр', '10 km marker'],
+    ['Академика Королева', 'Academician Korolev'],
+    ['ул. Рябиковская (конечная)', 'Ryabikovskaya St. (terminal)'],
+    ['ул. Ларина (конечная)', 'Larina St. (terminal)'],
+    ['ул. Космонавтов', 'Kosmonavtov St.'],
+    ['ул. Фурманова', 'Furmanova St.'],
+    ['ул. Академика Королева', 'Academician Korolev St.'],
+    ['Аллея флота', 'Fleet Alley'],
+    ['Центральный рынок', 'Central Market'],
+    ['Школа №32', 'School No. 32'],
+    ['ДК СРВ', 'SRV Culture House'],
+    ['ТЭЦ-2', 'CHP-2'],
+    ['Кладбище', 'Cemetery'],
+    ['Авача', 'Avacha'],
+    ['(конечная)', '(terminal)'],
+    ['ул.', 'St.'],
+  ],
+  zh: [
+    ['10 километр', '10公里站'],
+    ['Академика Королева', '科罗廖夫院士'],
+    ['ул. Рябиковская (конечная)', '里亚比科夫街（终点站）'],
+    ['ул. Ларина (конечная)', '拉丽娜街（终点站）'],
+    ['ул. Космонавтов', '宇航员街'],
+    ['ул. Фурманова', '富尔曼诺娃街'],
+    ['ул. Академика Королева', '科罗廖夫院士街'],
+    ['Аллея флота', '舰队林荫道'],
+    ['Центральный рынок', '中心市场'],
+    ['Школа №32', '32号学校'],
+    ['ДК СРВ', 'SRV文化宫'],
+    ['ТЭЦ-2', '第二热电厂'],
+    ['Кладбище', '公墓'],
+    ['Авача', '阿瓦恰'],
+    ['(конечная)', '（终点站）'],
+    ['ул.', '街'],
+  ],
+  ja: [
+    ['10 километр', '10キロ地点'],
+    ['Академика Королева', 'コロレフ院士'],
+    ['ул. Рябиковская (конечная)', 'リャビコフスカヤ通り（終点）'],
+    ['ул. Ларина (конечная)', 'ラリナ通り（終点）'],
+    ['ул. Космонавтов', 'コスモナフト通り'],
+    ['ул. Фурманова', 'フルマノワ通り'],
+    ['ул. Академика Королева', 'コロレフ院士通り'],
+    ['Аллея флота', '艦隊通り'],
+    ['Центральный рынок', '中央市場'],
+    ['Школа №32', '第32中学校'],
+    ['ДК СРВ', 'SRV文化会館'],
+    ['ТЭЦ-2', '第2熱電所'],
+    ['Кладбище', '墓地'],
+    ['Авача', 'アーヴァチャ'],
+    ['(конечная)', '（終点）'],
+    ['ул.', '通り'],
+  ],
+};
+
+export const FEED_LANG = { ru: 'ru', en: 'en', zh: 'zh', ja: 'ja' };
+
+export function translateStop(name, lang) {
+  if (!name || lang === 'ru') return name;
+  return STOPS[name]?.[lang] ?? name;
+}
+
+export function translateRoute(name, lang) {
+  if (!name || lang === 'ru') return name;
+  let out = name;
+  for (const [ru, tr] of ROUTE_PHRASES[lang] ?? []) {
+    out = out.split(ru).join(tr);
+  }
+  return out;
+}
+
+export function translateAgency(name, lang) {
+  if (!name || lang === 'ru') return name;
+  return AGENCY[name]?.[lang] ?? name;
+}

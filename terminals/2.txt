@@ -1,0 +1,28 @@
+---
+pid: 13492
+cwd: "C:\T1_GIT\pwa"
+command: "cmd /c \"cd /d C:\\T1_GIT\\pwa && npm run dev\""
+started_at: 2026-06-21T08:57:08.741Z
+running_for_ms: 33029986 
+---
+
+> pwa@1.0.0 dev
+> vite --port 5173
+
+11:57:09 [vite] (client) Re-optimizing dependencies because vite config has changed
+Port 5173 is in use, trying another one...
+
+  VITE v8.0.16  ready in 266 ms
+
+  ➜  Local:   http://localhost:5174/
+  ➜  Network: use --host to expose
+12:02:01 [vite] src/weather/weatherConfig.js changed, restarting server...
+12:02:01 [vite] .env changed, restarting server...
+12:02:01 [vite] server restarted.
+12:04:18 [vite] .env changed, restarting server...
+12:04:18 [vite] (client) Re-optimizing dependencies because vite config has changed
+12:04:18 [vite] server restarted.
+12:04:45 [vite] vite-plugins/weatherProxy.js changed, restarting server...
+12:04:45 [vite] server restarted.
+12:04:45 [vite] vite-plugins/weatherProxy.js changed, restarting server...
+12:04:45 [vite] server restarted.

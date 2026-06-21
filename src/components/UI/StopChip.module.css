@@ -1,0 +1,22 @@
+.wrap {
+  flex-shrink: 0;
+}
+
+.badge {
+  background: var(--acc, #FC3F1D);
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--glass-fg);
+  line-height: 1.2;
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 480px) {
+  .name { max-width: 110px; font-size: 13px; }
+}

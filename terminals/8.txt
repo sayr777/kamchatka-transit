@@ -1,0 +1,18 @@
+---
+pid: 7308
+cwd: "C:\T1_GIT\pwa"
+command: "npx vite"
+started_at: 2026-06-21T09:05:21.829Z
+running_for_ms: 35000    
+---
+��ப�:1 ����:22
++ (cd "C:\\T1_GIT\\pwa" ; npx vite)
++                      ~
+�������� ����뢠�騩 ���� ")" � ��ࠦ����.
+��ப�:1 ����:33
++ (cd "C:\\T1_GIT\\pwa" ; npx vite)
++                                 ~
+��।�������� ���ᥬ� ")" � ��ࠦ���� ��� ������.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : MissingEndParenthesisInExpression
+ 

@@ -11,12 +11,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "npm run test:unit && npm run test:gtfs",
-    "test:unit": "vitest run tests/unit/utils.test.js",
-    "test:gtfs": "vitest run tests/unit/gtfs.test.js",
+    "test:unit": "vitest run tests/unit/utils.test.js tests/unit/weather.test.js tests/unit/favorite-stops.test.js tests/unit/transport-conditions.test.js tests/unit/planner.test.js tests/unit/vehicle-visibility.test.js tests/unit/stop-departures.test.js tests/unit/stop-card.test.js",
+    "test:gtfs": "vitest run tests/unit/gtfs.test.js tests/unit/gtfs-i18n.test.js tests/unit/gtfs-search.test.js tests/unit/stop-focus.test.js",
     "test:e2e": "playwright test",
     "test:all": "npm run test:unit && npm run test:gtfs && npm run test:e2e",
     "test:cover": "vitest run --coverage",
-    "validate": "python scripts/validate-feed.py public/gtfs"
+    "build:gtfs": "node scripts/build-gtfs-langs.mjs",
+    "validate": "python scripts/validate-feed.py public/gtfs",
+    "weather-proxy": "node scripts/weather-proxy.mjs"
   },
   "type": "module",
   "repository": {

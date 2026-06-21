@@ -1,0 +1,18 @@
+---
+pid: 18456
+cwd: "C:\T1_GIT\pwa"
+command: "cmd /c \"cd /d C:\\T1_GIT\\pwa && npm run dev\""
+started_at: 2026-06-21T09:04:18.226Z
+running_for_ms: 32600001 
+---
+��ப�:1 ����:22
++ (cd "C:\\T1_GIT\\pwa" ; cmd /c "cd /d C:\T1_GIT\pwa && npm run dev")
++                      ~
+�������� ����뢠�騩 ���� ")" � ��ࠦ����.
+��ப�:1 ����:68
++ (cd "C:\\T1_GIT\\pwa" ; cmd /c "cd /d C:\T1_GIT\pwa && npm run dev")
++                                                                    ~
+��।�������� ���ᥬ� ")" � ��ࠦ���� ��� ������.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : MissingEndParenthesisInExpression
+ 

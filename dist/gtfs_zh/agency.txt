@@ -1,0 +1,2 @@
+agency_id,agency_name,agency_url,agency_timezone,agency_phone,agency_lang,
+agency_2603280916_49996,汽车运输公司,https://pkgo.ru,Asia/Kamchatka,301-070,zh,

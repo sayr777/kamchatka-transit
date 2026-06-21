@@ -1,0 +1,26 @@
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 24px;
+  background: var(--btn-glass-solid);
+  backdrop-filter: var(--btn-blur);
+  -webkit-backdrop-filter: var(--btn-blur);
+  border: 1px solid var(--btn-glass-border);
+  box-shadow: var(--sh);
+  color: var(--glass-fg);
+  font-size: 14px;
+  font-weight: 700;
+  text-shadow: var(--glass-text-shadow);
+  transition: transform .15s, box-shadow .15s, background .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pill:hover {
+  background: var(--btn-glass-hover);
+  box-shadow: 0 4px 16px rgba(0,0,0,.14);
+  transform: translateY(-1px);
+}
+
+.pill:active { transform: scale(.98); }

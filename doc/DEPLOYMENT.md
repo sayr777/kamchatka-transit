@@ -1,13 +1,15 @@
-# 🚀 Инструкция по развёртыванию и установке Transit PWA
+# Инструкция по развёртыванию и установке Transit PWA
+
+> Актуально для React-версии (Vite). Legacy без сборки: `public/app.html`.
 
 ## Оглавление
 
-1. [Структура проекта — что где лежит](#1-структура-проекта)
-2. [Быстрый старт (5 минут)](#2-быстрый-старт-5-минут)
-3. [Запуск фронтенда локально](#3-запуск-фронтенда-локально)
+1. [Структура проекта](#1-структура-проекта)
+2. [Быстрый старт (разработка)](#2-быстрый-старт-разработка)
+3. [Сборка production](#3-сборка-production)
 4. [Запуск WebSocket-сервера](#4-запуск-websocket-сервера)
-5. [Развёртывание на сервере (продакшн)](#5-развёртывание-на-сервере-продакшн)
-6. [Установка приложения на телефон](#6-установка-приложения-на-телефон)
+5. [Развёртывание на сервере](#5-развёртывание-на-сервере)
+6. [Установка на телефон](#6-установка-на-телефон)
 7. [Обновление данных GTFS](#7-обновление-данных-gtfs)
 8. [Проверка и диагностика](#8-проверка-и-диагностика)
 
@@ -15,362 +17,189 @@
 
 ## 1. Структура проекта
 
-Вот **полная структура папок** после распаковки архива:
-
 ```
-transit-pwa/                        ← корень проекта
+pwa/
+├── index.html              # Точка входа Vite
+├── vite.config.js          # Vite + React + PWA (Workbox)
+├── package.json
 │
-├── public/                         ← всё что открывает браузер
-│   ├── index.html                  ← само приложение (~250 КБ, один файл)
-│   ├── manifest.json               ← PWA: имя, иконки, цвет
-│   ├── sw.js                       ← Service Worker (офлайн-режим)
-│   └── icons/                      ← иконки приложения (SVG-формат)
-│       ├── favicon.svg             ← иконка вкладки браузера 32px
-│       ├── icon-192.svg            ← иконка на рабочем столе телефона
-│       └── icon-512.svg            ← иконка при установке PWA
+├── src/                    # Исходники React-приложения
+│   ├── App.jsx
+│   ├── store/appStore.js
+│   ├── gtfs/               # loader, worker, precache
+│   ├── realtime/           # vehicleTracker.js
+│   └── components/
 │
-├── doc/                            ← документация
-│   ├── DEPLOYMENT.md               ← этот файл
-│   ├── ARCHITECTURE.md
-│   ├── APP_DESCRIPTION.md
-│   ├── WEBSOCKET_API.md
-│   └── GTFS_EXTENSIONS.md
+├── public/                 # Статические ассеты (копируются в dist/)
+│   ├── app.html            # Legacy single-file приложение
+│   ├── gtfs_ru.zip …       # Языковые GTFS-архивы
+│   ├── gtfs/               # Исходные .txt
+│   ├── icons/              # PWA-иконки
+│   └── vendor/             # Библиотеки для legacy
 │
-├── gtfs/                           ← сюда кладёте свои GTFS .txt файлы
+├── dist/                   # Результат npm run build → деплоить это
 │
-├── gtfs-rt/
-│   └── vehicle_positions.json      ← пример формата GTFS-RT
-│
-├── scripts/
-│   └── build-feed.py               ← упаковка GTFS → feed.zip
-│
-└── README.md
+├── doc/                    # Документация
+├── scripts/validate-feed.py
+└── tests/                  # Vitest + Playwright
 ```
 
-**Важно:** для работы приложения нужна только папка `public/`.  
+**Для продакшна** нужна папка `dist/` после `npm run build`.  
 WebSocket-сервер — опциональный компонент для реального реалтайма.
 
 ---
 
-## 2. Быстрый старт (5 минут)
+## 2. Быстрый старт (разработка)
 
-Три команды чтобы запустить и посмотреть:
+### Требования
+
+- Node.js 18+
+- npm
+
+### Запуск dev-сервера
 
 ```bash
-# 1. Распаковать архив
-unzip transit-pwa-repo.zip
-cd repo
-
-# 2. Запустить HTTP-сервер
-python3 -m http.server 8000 --directory public
-
-# 3. Открыть в браузере
-#    → http://localhost:8000
+git clone https://github.com/sayr777/kamchatka-transit.git
+cd kamchatka-transit   # или pwa/
+npm install
+npm run dev
 ```
 
-Приложение работает с встроенными GTFS-данными — больше ничего не нужно.
+Откройте: **http://localhost:5173**
+
+Доступ с телефона в той же Wi-Fi сети:
+
+```bash
+npm run dev -- --host
+# → http://<IP-вашего-компьютера>:5173
+```
+
+### Почему нельзя открыть файл двойным кликом?
+
+`file://` блокирует Service Worker, Web Workers и fetch. Нужен HTTP-сервер (Vite dev или preview).
+
+### Тесты
+
+```bash
+npm run test        # 153 теста (utils + weather + gtfs + search + stop-focus)
+npm run test:unit   # 102 (utils + weather)
+npm run test:gtfs   # 51 (gtfs + i18n + search + stop-focus)
+npm run test:e2e    # Playwright (нужен запущенный preview)
+npm run test:all    # всё вместе
+```
+
+### Погода (dev)
+
+```bash
+cp .env.example .env   # YANDEX_WEATHER_KEY=...
+npm run dev            # прокси /api/weather на :5173
+```
+
+### Legacy без Node.js
+
+```bash
+python3 -m http.server 8000 --directory public
+# → http://localhost:8000/app.html
+```
 
 ---
 
-## 3. Запуск фронтенда локально
-
-### Почему нельзя просто открыть index.html двойным кликом?
-
-Двойной клик открывает файл по адресу `file:///...` — браузер блокирует Service Worker и некоторые API из соображений безопасности. Нужен настоящий HTTP-сервер.
-
-### Три способа (выберите любой)
-
-**Python 3** — обычно уже установлен:
+## 3. Сборка production
 
 ```bash
-python3 -m http.server 8000 --directory public
+npm run build
 ```
 
-**Node.js** — если установлен:
+Результат в `dist/`:
+
+```
+dist/
+├── index.html              # React-приложение
+├── sw.js                   # Workbox Service Worker
+├── manifest.webmanifest
+├── assets/                 # JS/CSS chunks (maplibre, deckgl, react)
+├── gtfs_ru.zip …          # GTFS-архивы из public/
+├── icons/
+└── app.html                # Legacy (для обратной совместимости)
+```
+
+Локальный просмотр сборки:
 
 ```bash
-npx serve public
+npm run preview
+# → http://localhost:4173
 ```
-
-**PHP** — если установлен:
-
-```bash
-php -S localhost:8000 -t public
-```
-
-Откройте в браузере: **http://localhost:8000**
-
-Нормальный вывод в терминале:
-
-```
-Serving HTTP on 0.0.0.0 port 8000 ...
-127.0.0.1 - - [28/Mar/2026] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [28/Mar/2026] "GET /manifest.json HTTP/1.1" 200 -
-127.0.0.1 - - [28/Mar/2026] "GET /sw.js HTTP/1.1" 200 -
-```
-
-Оставьте этот терминал открытым — пока он работает, сайт доступен.
-
-### Открыть с телефона (в той же Wi-Fi сети)
-
-Узнайте IP вашего компьютера:
-
-```bash
-# macOS / Linux
-ifconfig | grep "inet " | grep -v 127
-
-# Windows
-ipconfig | findstr IPv4
-```
-
-Запустите сервер, принимающий внешние подключения:
-
-```bash
-python3 -m http.server 8000 --directory public --bind 0.0.0.0
-```
-
-Откройте на телефоне: **http://192.168.X.X:8000**
 
 ---
 
 ## 4. Запуск WebSocket-сервера
 
-> **Без WebSocket-сервера приложение работает** — встроенный симулятор
-> генерирует реалистичные ETA на основе GTFS-расписания.  
-> Сервер нужен только для подключения **реальных GPS-данных** от автобусов.
+> Без WS-сервера приложение работает — встроенный симулятор двигает автобусы по GTFS-данным.  
+> Сервер нужен для **реальных GPS-данных**.
 
-### Шаг 1. Установите Node.js
+### Подключение в React-версии
 
-```bash
-node --version   # должно быть v18 или новее
-```
-
-Если не установлен:
-
-```bash
-# Ubuntu / Debian
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
-
-# macOS
-brew install node
-
-# Windows — установщик на https://nodejs.org
-```
-
-### Шаг 2. Создайте папку сервера
-
-```bash
-# Создать папку (можно любую)
-mkdir ~/transit-ws
-cd ~/transit-ws
-```
-
-### Шаг 3. Инициализируйте Node-проект
-
-```bash
-npm init -y
-npm install ws
-```
-
-Появится папка `node_modules/` и файлы `package.json`, `package-lock.json` — это нормально.
-
-### Шаг 4. Создайте файл server.js
-
-```bash
-nano ~/transit-ws/server.js
-```
-
-Вставьте следующий код целиком:
+Передайте URL в `startVehicleTracker()` в `src/App.jsx`:
 
 ```javascript
-'use strict';
-const WebSocket = require('ws');
-const PORT = process.env.WS_PORT || 3000;
-const wss  = new WebSocket.Server({ port: PORT });
-
-// Хранилище подписок: ws → { stops: Set, routes: Set }
-const subs = new Map();
-
-wss.on('connection', (ws, req) => {
-  const ip = req.socket.remoteAddress;
-  console.log(`[+] клиент: ${ip}  всего: ${wss.clients.size}`);
-  subs.set(ws, { stops: new Set(), routes: new Set() });
-
-  ws.send(JSON.stringify({
-    type: 'connected',
-    server_time: Math.floor(Date.now() / 1000),
-    version: '1.0', city: 'pk', feed_version: '2026-03-28'
-  }));
-
-  ws.on('message', raw => {
-    let m; try { m = JSON.parse(raw.toString()); } catch { return; }
-
-    if (m.action === 'subscribe') {
-      const s = subs.get(ws);
-      (m.stops  || []).forEach(x => s.stops.add(x));
-      (m.routes || []).forEach(x => s.routes.add(x));
-      ws.send(JSON.stringify({ type: 'subscribed',
-        stops: [...s.stops], routes: [...s.routes], ts: Date.now() }));
-      console.log(`   subscribe: ${s.stops.size} остановок, ${s.routes.size} маршрутов`);
-    }
-    if (m.action === 'unsubscribe') {
-      const s = subs.get(ws);
-      (m.stops  || []).forEach(x => s.stops.delete(x));
-      (m.routes || []).forEach(x => s.routes.delete(x));
-    }
-    if (m.action === 'ping') ws.send(JSON.stringify({ type: 'pong', ts: Date.now() }));
-  });
-
-  ws.on('close', () => { subs.delete(ws); console.log(`[-] клиент отключён  всего: ${wss.clients.size}`); });
-  ws.on('error', console.error);
-});
-
-function broadcast(event) {
-  for (const [ws, s] of subs) {
-    if (ws.readyState !== WebSocket.OPEN) continue;
-    if ((event.stop_id  && s.stops.has(event.stop_id))   ||
-        (event.route_id && s.routes.has(event.route_id)) ||
-         event.type === 'alert' || event.type === 'heartbeat')
-      ws.send(JSON.stringify(event));
-  }
-}
-
-// Heartbeat каждые 30 сек
-setInterval(() => broadcast({ type: 'heartbeat', ts: Date.now(), clients: wss.clients.size }), 30_000);
-
-// Демо: случайные ETA (замените на реальный GTFS-RT)
-const STOPS  = ['stop_260328_80828','stop_260328_27515','stop_260328_76068'];
-const ROUTES = ['route_260328_42721','route_260328_20893','route_260328_13897'];
-setInterval(() => {
-  broadcast({ type: 'arrival',
-    stop_id:  STOPS [Math.floor(Math.random() * STOPS.length)],
-    route_id: ROUTES[Math.floor(Math.random() * ROUTES.length)],
-    eta:   Math.floor(30 + Math.random() * 900),
-    delay: Math.floor((Math.random() - 0.5) * 120),
-    ts: Date.now() });
-}, 5_000);
-
-console.log('🚌 WebSocket-сервер запущен');
-console.log(`   Порт: ${PORT}`);
-console.log(`   URL:  ws://localhost:${PORT}`);
-console.log('   Остановить: Ctrl+C\n');
+startVehicleTracker('ws://localhost:3000');
+// или wss://transit.ваш-домен.ru/ws для продакшна
 ```
 
-Сохраните: `Ctrl+O` → `Enter` → `Ctrl+X`
+По умолчанию: `startVehicleTracker(null)` — только симулятор.
 
-### Шаг 5. Запустите сервер
+### Минимальный WS-сервер (Node.js)
 
 ```bash
-cd ~/transit-ws
+mkdir ~/transit-ws && cd ~/transit-ws
+npm init -y && npm install ws
+```
+
+Создайте `server.js` (полный код — в `doc/WEBSOCKET_API.md`, раздел Reference Implementation).
+
+```bash
 node server.js
+# → ws://localhost:3000
 ```
 
-Вы увидите:
-
-```
-🚌 WebSocket-сервер запущен
-   Порт: 3000
-   URL:  ws://localhost:3000
-   Остановить: Ctrl+C
-```
-
-Сервер работает. **Оставьте терминал открытым.**
-
-### Шаг 6. Подключите приложение к серверу
-
-1. Откройте приложение: `http://localhost:8000`
-2. Нажмите кнопку **🛰 Офлайн** (верхний левый угол карты)
-3. В поле введите адрес: `ws://localhost:3000`
-4. Нажмите **«Подключить»**
-5. Бейдж изменится на **🟢 Live**
-
-### Остановка, перезапуск, другой порт
+### Автозапуск через PM2
 
 ```bash
-# Остановить (в терминале где запущен):
-Ctrl+C
-
-# Перезапустить:
-node server.js
-
-# Запустить на другом порту:
-WS_PORT=4000 node server.js
-# Тогда подключаться: ws://localhost:4000
-```
-
-### Автозапуск через PM2 (чтобы сервер не падал)
-
-```bash
-# Установить PM2
 sudo npm install -g pm2
-
-# Запустить под управлением PM2
 pm2 start ~/transit-ws/server.js --name transit-ws
-
-# Добавить в автозапуск при перезагрузке ОС
-pm2 startup         # скопируйте и выполните команду из вывода
-pm2 save            # сохранить список процессов
-
-# Управление
-pm2 status                # все процессы и их состояние
-pm2 logs transit-ws       # логи в реальном времени
-pm2 restart transit-ws    # перезапустить
-pm2 stop transit-ws       # остановить
+pm2 startup && pm2 save
 ```
 
 ---
 
-## 5. Развёртывание на сервере (продакшн)
+## 5. Развёртывание на сервере
 
 ### Что понадобится
 
-- VPS с Ubuntu 22.04 LTS (минимум 1 vCPU, 512 МБ RAM)
-- Доменное имя (для HTTPS — обязателен при установке PWA)
-- Открытые порты: 22, 80, 443
+- VPS (Ubuntu 22.04+, 1 vCPU, 512 МБ RAM)
+- Доменное имя (HTTPS обязателен для PWA)
+- Порты: 22, 80, 443
 
-### Установка
+### Сборка и загрузка
 
 ```bash
-# Подключиться
+# Локально
+npm run build
+
+# На сервер
 ssh user@ВАШ_IP
-
-# Обновить систему
-sudo apt update && sudo apt upgrade -y
-
-# Установить Nginx
-sudo apt install -y nginx
-
-# Установить Node.js
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
-```
-
-### Разместить фронтенд
-
-```bash
-# На сервере: создать папку
 sudo mkdir -p /var/www/transit-pwa
 sudo chown $USER:$USER /var/www/transit-pwa
 
-# С локального компьютера: скопировать файлы
-scp -r public/* user@ВАШ_IP:/var/www/transit-pwa/
+# С локального компьютера
+scp -r dist/* user@ВАШ_IP:/var/www/transit-pwa/
 ```
 
-Проверить на сервере:
-
-```bash
-ls /var/www/transit-pwa/
-# index.html  manifest.json  sw.js  icons/
-```
-
-### Настроить Nginx
+### Nginx
 
 ```bash
 sudo nano /etc/nginx/sites-available/transit-pwa
 ```
-
-Вставить (заменить домен):
 
 ```nginx
 server {
@@ -381,11 +210,21 @@ server {
     index index.html;
 
     gzip on;
-    gzip_types text/html application/javascript application/json image/svg+xml;
+    gzip_types text/html application/javascript application/json text/css image/svg+xml;
 
-    location ~* \.svg$ { expires 1y; add_header Cache-Control "public, immutable"; }
-    location = /sw.js   { add_header Cache-Control "no-cache, no-store"; }
-    location = /manifest.json { add_header Cache-Control "no-cache"; }
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location ~* \.(zip)$ {
+        expires 7d;
+        add_header Cache-Control "public";
+    }
+
+    location = /sw.js {
+        add_header Cache-Control "no-cache, no-store";
+    }
 
     location /ws {
         proxy_pass http://localhost:3000;
@@ -395,7 +234,9 @@ server {
         proxy_read_timeout 3600s;
     }
 
-    location / { try_files $uri /index.html; }
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
 }
 ```
 
@@ -404,68 +245,109 @@ sudo ln -s /etc/nginx/sites-available/transit-pwa /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-### HTTPS (обязательно для PWA)
+### HTTPS
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d transit.ваш-домен.ru
 ```
 
-После этого сайт доступен по `https://transit.ваш-домен.ru` ✅
+### Прокси погоды (бесплатный тариф Яндекса)
 
-### Развернуть WS-сервер на продакшне
+Лимит API: **50 запросов/сутки**. Прокси кэширует ответ 1 час (~24 req/день).
 
 ```bash
-# Создать папку
+# На сервере (фоном через PM2)
+YANDEX_WEATHER_KEY=xxx pm2 start npm --name weather-proxy -- run weather-proxy
+```
+
+В Nginx добавьте перед `location /`:
+
+```nginx
+location /api/weather {
+    proxy_pass http://127.0.0.1:8787;
+    proxy_cache_valid 200 1h;
+}
+```
+
+Ключ берётся на [developer.tech.yandex.ru](https://developer.tech.yandex.ru/) (сервис «Погода»).
+
+### WS-сервер на продакшне
+
+```bash
 sudo mkdir /opt/transit-ws && sudo chown $USER:$USER /opt/transit-ws
-
-# Загрузить server.js (с локального компьютера)
 scp ~/transit-ws/server.js user@ВАШ_IP:/opt/transit-ws/
-
-# На сервере — установить зависимости и запустить
-cd /opt/transit-ws
-npm init -y && npm install ws
-sudo npm install -g pm2
+ssh user@ВАШ_IP "cd /opt/transit-ws && npm init -y && npm install ws"
 pm2 start server.js --name transit-ws
 pm2 startup && pm2 save
 ```
 
+### GitHub Pages
+
+Для статического хостинга на GitHub Pages деплойте содержимое `dist/` в ветку `gh-pages` или в `public/` репозитория. GTFS-архивы уже доступны по адресу:
+
+`https://sayr777.github.io/kamchatka-transit/public/gtfs_ru.zip`
+
 ---
 
-## 6. Установка приложения на телефон
+## 6. Установка на телефон
 
 ### Android — Chrome
 
-1. Откройте Chrome, перейдите на сайт
-2. Внизу появится баннер → нажмите **«Установить»**
-
-Если баннер не появился: меню ⋮ → **«Добавить на главный экран»**
+1. Откройте сайт по HTTPS
+2. Баннер «Установить» внизу экрана
+3. Или: меню ⋮ → «Добавить на главный экран»
 
 ### iOS — Safari
 
-> Только через Safari! Chrome на iOS не поддерживает установку PWA.
+> Только Safari! Chrome на iOS не поддерживает установку PWA.
 
-1. Откройте Safari, перейдите на сайт
-2. Кнопка **Поделиться** ↑ → **«На экран "Домой"»** → **«Добавить»**
+1. Откройте сайт в Safari
+2. Поделиться ↑ → «На экран "Домой"» → «Добавить»
 
-### ПК — Chrome или Edge
+### ПК — Chrome / Edge
 
-В адресной строке справа появится иконка ⊕ → нажмите → **«Установить»**
+Иконка ⊕ в адресной строке → «Установить»
+
+Страница-помощник: `public/install.html` (QR-код, инструкции).
 
 ---
 
 ## 7. Обновление данных GTFS
 
-```bash
-# Положите обновлённые .txt файлы в папку gtfs/
-# Упакуйте:
-python3 scripts/build-feed.py --input ./gtfs --output ./public/feed.zip
+### Исходные файлы
 
-# Загрузите на сервер:
-scp public/feed.zip user@SERVER:/var/www/transit-pwa/feed.zip
+```
+public/gtfs/
+├── agency.txt, routes.txt, trips.txt, stops.txt
+├── stop_times.txt, shapes.txt, calendar.txt
+└── vehicles.txt, vehicle_trips.txt  (расширения)
 ```
 
-Пользователям ничего делать не нужно — приложение само подтянет обновление.
+### Проверка
+
+```bash
+npm run validate
+# python scripts/validate-feed.py public/gtfs
+```
+
+### Упаковка языковых ZIP
+
+```bash
+# Рекомендуемый способ — скрипт переводов
+npm run build:gtfs
+```
+
+Скрипт читает `public/gtfs/`, применяет `scripts/gtfs-translations.mjs`, пишет каталоги `gtfs_en/`, `gtfs_zh/`, `gtfs_ja/` и ZIP-архивы. Кэш загрузчика: `gtfs-feeds-v2` — после обновления фида пользователям может понадобиться hard refresh.
+
+### Деплой
+
+```bash
+npm run build
+scp -r dist/gtfs_*.zip user@SERVER:/var/www/transit-pwa/
+```
+
+Приложение подтянет обновление через `refreshFeedsInBackground()` при следующем онлайн-запуске.
 
 ---
 
@@ -474,31 +356,36 @@ scp public/feed.zip user@SERVER:/var/www/transit-pwa/feed.zip
 ### Быстрая проверка
 
 ```bash
-# Сайт отвечает?
-curl -I http://localhost:8000
-# Ожидаем: HTTP/1.0 200 OK
+# Dev-сервер
+curl -I http://localhost:5173
 
-# WS-сервер запущен?
-wscat -c ws://localhost:3000          # npm install -g wscat
-# Ожидаем: Connected  затем  {"type":"connected",...}
+# Production preview
+npm run preview &
+curl -I http://localhost:4173
 
-# На продакшне
-curl -I https://transit.ваш-домен.ru  # HTTP/2 200
-wscat -c wss://transit.ваш-домен.ru/ws
+# WS-сервер
+wscat -c ws://localhost:3000    # npm install -g wscat
+
+# Продакшн
+curl -I https://transit.ваш-домен.ru
 ```
 
 ### Частые проблемы
 
 | Симптом | Причина | Решение |
 |---------|---------|---------|
-| Белый экран | Открыт через `file://` | Запустить HTTP-сервер |
-| WS не подключается | Сервер не запущен | `pm2 status` → `pm2 restart transit-ws` |
-| Не предлагает установку | Нет HTTPS | Настроить Certbot |
-| Иконки не появляются | Нет файлов в `icons/` | `ls public/icons/` → должны быть .svg |
+| Белый экран | `file://` или ошибка сборки | `npm run dev`, проверить консоль |
+| GTFS не грузится | Нет сети и кэша | Проверить URL в `loader.js`, наличие ZIP |
+| PWA не устанавливается | Нет HTTPS | Certbot |
+| WS не подключается | URL не задан / сервер не запущен | `App.jsx` → `startVehicleTracker(url)` |
+| Старые данные | Кэш SW | Hard refresh, очистить кэш сайта |
 
 ### Логи
 
 ```bash
+# Браузер: DevTools → Console
+# Фильтры: [GTFS], [RT], [offline]
+
 # Nginx
 sudo tail -f /var/log/nginx/error.log
 
@@ -511,35 +398,20 @@ pm2 logs transit-ws
 ## Шпаргалка
 
 ```bash
-# ─── ЛОКАЛЬНАЯ РАЗРАБОТКА ─────────────────────────────────
-
-# Запустить приложение
-python3 -m http.server 8000 --directory public
-# Открыть: http://localhost:8000
-
-# Запустить WS-сервер (отдельный терминал)
-node ~/transit-ws/server.js
-# Адрес для приложения: ws://localhost:3000
+# ─── РАЗРАБОТКА ──────────────────────────────────────────
+npm install
+npm run dev                              # :5173
+npm run build && npm run preview         # :4173
 
 # ─── ПРОДАКШН ────────────────────────────────────────────
-
-# Загрузить фронтенд
-scp -r public/* user@IP:/var/www/transit-pwa/
-
-# Перезагрузить Nginx
+npm run build
+scp -r dist/* user@IP:/var/www/transit-pwa/
 sudo systemctl reload nginx
 
-# WS-сервер
-pm2 status                      # статус
-pm2 restart transit-ws          # перезапустить
-pm2 logs transit-ws             # логи
-
-# SSL сертификат
-sudo certbot --nginx -d ваш-домен.ru
+# WS
+pm2 restart transit-ws
 
 # ─── ДАННЫЕ ──────────────────────────────────────────────
-
-# Обновить GTFS
-python3 scripts/build-feed.py --input ./gtfs --output ./public/feed.zip
-scp public/feed.zip user@IP:/var/www/transit-pwa/
+npm run validate
+npm run build   # после обновления gtfs/*.txt и ZIP
 ```

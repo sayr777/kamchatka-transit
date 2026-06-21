@@ -943,32 +943,26 @@ publisher.publish('gtfs-rt-events', JSON.stringify({
 
 ## 9. Тестирование без сервера
 
-### Встроенный симулятор
+### Встроенный симулятор (React)
 
-Приложение содержит встроенный симулятор, который работает без сервера. Симулятор использует реальные GTFS-данные для генерации правдоподобных событий.
+Файл: `src/realtime/vehicleTracker.js`
 
-**Алгоритм симулятора:**
+По умолчанию `startVehicleTracker(null)` запускает симулятор без WebSocket.
+
+**Алгоритм:**
 
 ```javascript
-function _simTick() {
-  // 1. Выбрать случайную остановку
-  const stop = S.allStops[Math.floor(Math.random() * 60)]
-  
-  // 2. Найти рейсы через неё
-  const stopsHere = S.parsed.stopTimesArr.filter(st => st.stop_id === stop.stop_id)
-  
-  // 3. Вычислить ETA на основе расписания + jitter ±3 мин
-  const sched = parseTimeMin(st.departure_time)
-  const diff = sched - nowMin()
-  const etaSec = Math.max(30, diff * 60 + (Math.random() * 6 - 3) * 60)
-  
-  // 4. Эмитировать событие arrival
-  rtHandleEvent({ type: 'arrival', stop_id, route_id, eta: etaSec })
-  
-  // 5. Следующий тик через 2–5 сек
-  WS.simTimer = setTimeout(_simTick, 2000 + Math.random() * 3000)
-}
+// 1. Взять до 30 маршрутов из store
+// 2. Разместить ТС по кругу вокруг PKC (158.7, 53.015)
+// 3. Каждые 2 сек обновлять lon/lat с bounce внутри bbox
+// 4. useAppStore.setState({ vehicles: [...simVehicles] })
 ```
+
+При заданном `wsUrl` — подключение к WS; если за 10 сек нет данных, fallback на симулятор.
+
+### Legacy-симулятор (`app.html`)
+
+Генерирует ETA-события (`arrival`) и позиции ТС на основе `stopTimesArr` и `getVehiclePos()`. Подробнее — git-история `public/app.html`.
 
 ### Тестирование через wscat
 

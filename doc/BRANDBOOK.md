@@ -1,7 +1,8 @@
 # Брендбук UI — Камчатка.Транспорт
 
 > Единый источник правды по визуальной системе приложения.  
-> Все значения берутся из CSS-переменных в `public/index.html` `:root { … }`.
+> **React-версия:** CSS-переменные в `src/index.css` (`:root`).  
+> **Legacy:** `public/app.html` (`:root` / `html.dark`).
 
 ---
 
@@ -41,7 +42,20 @@
 | `--info` | `#3B7EFF` | Информация, ссылки |
 | `--warn` | `#FF9500` | Предупреждение, задержка |
 
-### Тёмная тема (`html.dark`)
+### Тёмная тема
+
+**React** (`@media (prefers-color-scheme: dark)` в `src/index.css`):
+
+| Токен | Значение |
+|-------|----------|
+| `--bg` | `#1C1C1E` |
+| `--panel` | `#2C2C2E` |
+| `--border` | `#3A3A3C` |
+| `--t1` | `#F5F5F7` |
+| `--t2` | `#AEAEB2` |
+| `--t3` | `#636366` |
+
+**Legacy** (`html.dark` в `app.html`):
 
 | Токен | Значение |
 |-------|----------|
@@ -285,14 +299,17 @@ Padding: 4px 12px 4px 9px
 
 ## 11. Карта
 
-| Режим | Тайл-провайдер |
-|-------|---------------|
-| Светлый | OpenStreetMap (стандартный) |
-| Тёмный | CartoDB Dark Matter |
+| Компонент | Технология |
+|-----------|------------|
+| Подложка | MapLibre GL + Mapbox raster tiles |
+| Слои данных | deck.gl (PathLayer, ScatterplotLayer, TextLayer) |
+| Офлайн-тайлы | `src/gtfs/precache.js` → Cache API |
 
-**Остановки:** красный пустой круг `○`  
-**ТС в движении:** цветная точка + цветной бейдж `№X`  
-**Маршрут (выбранный):** цветная линия `stroke-width: 4`
+**Остановки:** точки ScatterplotLayer (zoom ≥ 13)  
+**ТС:** цветная точка + halo + TextLayer с номером маршрута  
+**Маршрут (выбранный):** PathLayer, цвет из `route_color` GTFS
+
+> Legacy `app.html` использовал CartoDB/OSM tiles. React-версия — кастомный стиль Mapbox.
 
 ---
 
@@ -334,7 +351,7 @@ Padding: 4px 12px 4px 9px
 
 **6. Скорость загрузки**  
 Приложение работает офлайн после первого запуска.  
-→ GTFS-данные кешируются локально. Карта рендерится через WebGL (deck.gl) без тяжёлых растровых изображений. Шрифты — в `vendor/`, без внешних запросов.
+→ GTFS парсится в Web Worker. Карта — WebGL (deck.gl). Code splitting: отдельные chunks для maplibre, deckgl, react. Шрифты: Google Fonts (Golos Text, Unbounded) в React; локальные woff2 в legacy `vendor/fonts/`.
 
 ---
 
@@ -345,8 +362,9 @@ Padding: 4px 12px 4px 9px
 ---
 
 **8. Тёмный режим / режим чтения**  
-Два полных скин-режима без потери функциональности.  
-→ Светлая тема: OSM-тайлы + светлые панели. Тёмная тема: CartoDB Dark Matter + тёмные панели (`#1E1E22`). Переключение — одна кнопка `☽/☀`, сохраняется в `localStorage`.
+React: автоматически по `prefers-color-scheme` (`src/index.css`).  
+Legacy: ручной переключатель `☽/☀` + CartoDB Dark Matter tiles.  
+Панели: `#FFFFFF` / `#1C1C1E` (свет) · `#2C2C2E` (тём).
 
 ---
 

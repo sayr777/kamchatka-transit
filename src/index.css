@@ -4,6 +4,7 @@
 
 :root {
   --acc: #FC3F1D;
+  --acc-dk: #d93218;
   --bg: #FFFFFF;
   --panel: #F5F5F7;
   --border: #E5E5EA;
@@ -12,6 +13,15 @@
   --t3: #AEAEB2;
   --sh: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.10);
   --sh-up: 0 -1px 3px rgba(0,0,0,.06), 0 -4px 12px rgba(0,0,0,.08);
+  --btn-glass: rgba(255, 255, 255, 0.42);
+  --btn-glass-hover: rgba(255, 255, 255, 0.58);
+  --btn-glass-solid: rgba(255, 255, 255, 0.82);
+  --btn-glass-border: rgba(255, 255, 255, 0.55);
+  --btn-blur: blur(14px);
+  --glass-fg: #0a0a0c;
+  --glass-fg-soft: #1c1c1e;
+  --glass-fg-muted: #3a3a42;
+  --glass-text-shadow: 0 1px 2px rgba(255, 255, 255, 0.95), 0 0 8px rgba(255, 255, 255, 0.5);
   --ok: #34C759;
   --info: #007AFF;
   --r: 16px;
@@ -20,6 +30,28 @@
   --body: 'Golos Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-family: var(--body);
   -webkit-font-smoothing: antialiased;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1C1C1E;
+    --panel: #2C2C2E;
+    --border: #3A3A3C;
+    --t1: #F5F5F7;
+    --t2: #AEAEB2;
+    --t3: #636366;
+    --sh: 0 1px 3px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.4);
+    --sh-up: 0 -1px 3px rgba(0,0,0,.2), 0 -4px 12px rgba(0,0,0,.3);
+    --btn-glass: rgba(28, 28, 30, 0.45);
+    --btn-glass-hover: rgba(44, 44, 46, 0.62);
+    --btn-glass-solid: rgba(22, 22, 24, 0.88);
+    --btn-glass-border: rgba(255, 255, 255, 0.1);
+    --glass-fg: #ffffff;
+    --glass-fg-soft: #f2f2f7;
+    --glass-fg-muted: #c7c7cc;
+    --glass-text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 10px rgba(0, 0, 0, 0.45);
+  }
 }
 
 html, body, #root {
@@ -36,6 +68,14 @@ button {
   border: none;
   outline: none;
   background: none;
+}
+
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 input {

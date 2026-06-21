@@ -1,5 +1,7 @@
 # Архитектура системы Transit PWA
 
+> Актуально для React-версии (`src/`). Legacy single-file приложение — `public/app.html`.
+
 ## Оглавление
 
 1. [Концепция и принципы](#1-концепция-и-принципы)
@@ -7,12 +9,13 @@
 3. [Слои приложения](#3-слои-приложения)
 4. [Поток данных](#4-поток-данных)
 5. [Технологический стек](#5-технологический-стек)
-6. [IndexedDB — схема хранилища](#6-indexeddb--схема-хранилища)
+6. [Состояние (Zustand)](#6-состояние-zustand)
 7. [Система реалтайм (WebSocket)](#7-система-реалтайм-websocket)
-8. [Merge Engine](#8-merge-engine)
-9. [Рендеринг карты (deck.gl)](#9-рендеринг-карты-deckgl)
-10. [Service Worker и кэширование](#10-service-worker-и-кэширование)
+8. [Рендеринг карты (deck.gl)](#8-рендеринг-карты-deckgl)
+9. [Service Worker и кэширование](#9-service-worker-и-кэширование)
+10. [Legacy-версия](#10-legacy-версия)
 11. [Производительность и ограничения](#11-производительность-и-ограничения)
+12. [Источники GTFS-данных](#12-источники-gtfs-данных)
 
 ---
 
@@ -20,32 +23,28 @@
 
 ### Offline-First
 
-Приложение полностью функционально без сети. GTFS-данные загружаются из `feed.zip` при первом запуске и кэшируются Service Worker для офлайн-использования. При наличии сети — обновляет фид в фоне.
+Приложение работает без сети после первого успешного запуска. GTFS-архив скачивается по выбранному языку, кэшируется через Cache API и парсится в Web Worker. Тайлы карты предзагружаются для региона Петропавловска-Камчатского.
 
 ```
-Приоритет источников данных:
-1. Удалённый GTFS-фид (gtfsRemote URL)   ← свежайшие данные
-2. Cache API (Service Worker)             ← последний скачанный фид
-3. ./feed.zip (локальный файл)            ← резервный вариант
+Приоритет источников GTFS:
+1. Cache API (gtfs-feeds-v2)     ← последний скачанный языковой ZIP
+2. Локальный / удалённый URL     ← gtfs_ru.zip / gtfs_en.zip / gtfs_cn.zip / gtfs_jp.zip
 ```
 
-### Single-File Architecture
+При наличии сети `refreshFeedsInBackground()` обновляет все языковые архивы в фоне.
 
-Всё приложение — один HTML-файл (~250 КБ). Это принципиальное архитектурное решение:
+### Модульная архитектура (React + Vite)
 
-- **Развёртывание**: копирование одного файла на любой статический хостинг
-- **Кэширование**: Service Worker кэширует один URL
-- **Офлайн**: при добавлении на главный экран работает полностью автономно
-- **Обновление**: замена одного файла на сервере обновляет всё приложение
+Приложение собирается Vite в папку `dist/`:
 
-Дополнительные файлы рядом с `index.html`:
-- `splash-bg.png` — фоновое фото Камчатки на экране-заставке
-- `feed.zip` — GTFS-данные (маршруты, остановки, расписание)
-- `sw.js` — Service Worker
+- **Развёртывание**: статический хостинг содержимого `dist/`
+- **Кэширование**: Workbox (vite-plugin-pwa) кэширует JS/CSS и runtime-запросы
+- **Офлайн**: PWA с autoUpdate Service Worker
+- **Обновление**: `npm run build` → деплой `dist/`
 
-### Immutable State via Mutation
+### Реактивное состояние (Zustand)
 
-Состояние хранится в единственном мутируемом объекте `S`. Это намеренное упрощение против Redux/MobX: приложение не требует реактивности всего графа — только явные перерисовки при переходах между экранами.
+Глобальное состояние — единый store `src/store/appStore.js`. Компоненты подписываются на нужные срезы через селекторы. Карта использует `storeRef` для анимационного цикла без лишних ре-рендеров.
 
 ---
 
@@ -58,16 +57,16 @@
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────────┐  │
 │  │  UI Layer    │    │ Domain Logic │    │   Data Layer     │  │
 │  │              │    │              │    │                  │  │
-│  │  deck.gl     │◄──►│  GTFS Engine │◄──►│  Memory (S.*) │  │
-│  │  DOM Screens │    │  Merge Engine│    │  Cache API       │  │
-│  │  Animations  │    │  Route Finder│    │  localStorage    │  │
+│  │  React       │◄──►│  GTFS Worker │◄──►│  Zustand store   │  │
+│  │  deck.gl     │    │  Precache    │    │  Cache API       │  │
+│  │  MapLibre    │    │  (planner*)  │    │  localStorage    │  │
 │  └──────────────┘    └──────────────┘    └──────────────────┘  │
 │           │                  ▲                      ▲           │
 │           │                  │                      │           │
 │           ▼                  │                      │           │
 │  ┌──────────────────────┐    │           ┌──────────────────┐  │
-│  │    WebSocket Client  │────┘           │  Service Worker  │  │
-│  │    (WS object + sim) │                │  (Cache + Sync)  │  │
+│  │  vehicleTracker.js   │────┘           │  Workbox SW      │  │
+│  │  (WS + simulator)    │                │  (vite-plugin)   │  │
 │  └──────────────────────┘                └──────────────────┘  │
 │           │                                        │            │
 └───────────┼────────────────────────────────────────┼────────────┘
@@ -75,16 +74,17 @@
             ▼                                        ▼
 ┌─────────────────────┐                 ┌───────────────────────┐
 │   WS Server         │                 │   CDN / Static Host   │
-│   (GTFS-RT adapter) │                 │   feed.zip            │
-│   ws://host:3000    │                 │   Обновления фида     │
+│   (GTFS-RT adapter) │                 │   gtfs_*.zip          │
+│   ws://host:3000    │                 │   dist/ assets        │
 └─────────────────────┘                 └───────────────────────┘
             │
             ▼
 ┌─────────────────────┐
 │   AVL / GPS System  │
 │   GTFS-RT protobuf  │
-│   (транспорт депо)  │
 └─────────────────────┘
+
+* планировщик — в разработке (UI-заготовка в store)
 ```
 
 ---
@@ -93,94 +93,71 @@
 
 ### 3.1 Data Layer
 
-**GTFS Parser** — разбирает CSV-файлы через PapaParse в памяти:
+**GTFS Loader** (`src/gtfs/loader.js`) — скачивает языковой ZIP, кэширует, передаёт буфер в Worker.
+
+**GTFS Worker** (`src/gtfs/gtfs.worker.js`) — распаковка JSZip + парсинг PapaParse:
 
 ```javascript
-S.parsed = {
-  routesArr:      [],   // routes.txt
-  tripsArr:       [],   // trips.txt
-  stopsArr:       [],   // stops.txt
-  shapesArr:      [],   // shapes.txt
-  stopTimesArr:   [],   // stop_times.txt  ← самый большой (~10K строк)
-  vehiclesArr:    [],   // vehicles.txt (расширение)
-  vehicleTripsArr:[],   // vehicle_trips.txt (расширение)
+// Результат после индексации (plain objects → Maps в loader.js)
+{
+  routes, stops,
+  routeMetaById,       // route_id → { id, name, hex, shortName, routeType }
+  arrivalsByStopId,    // stop_id → [{ tripId, time, mins, routeId, routeShort }]
+  stopIdsByRouteId,    // route_id → [stop_id, …] (порядок по рейсу)
+  routeIdsByStopId,    // stop_id → [route_id, …]
+  tripToService,       // trip_id → service_id
+  tripToRoute,         // trip_id → route_id
+  calendarByServiceId, // service_id → calendar row
+  shapesByShapeId,     // shape_id → [{ lat, lon, shape_pt_sequence }]
+  firstShapeByRoute,   // route_id → shape_id
 }
 ```
 
-**WS Store** — реалтайм хранилище в памяти:
+**Tile Precache** (`src/gtfs/precache.js`) — предзагрузка тайлов Mapbox для bbox Петропавловска (zoom 8–14).
 
-```javascript
-const WS = {
-  etaMap:      new Map(),  // `${stop_id}:${route_id}` → {etaSec, ts}
-  rtVehicles:  new Map(),  // vehicle_id → {lat, lon, routeId, ts}
-  stats:       {},         // метрики
-}
-```
-
-**Favorites** — синхронизированы с localStorage:
-
-```javascript
-S.favRoutes  = JSON.parse(localStorage.getItem('fav-routes') || '[]')
-S.favStops   = JSON.parse(localStorage.getItem('fav-stops')  || '[]')
-```
+**Favorites** — в React-версии пока не реализованы (есть в legacy `app.html`).
 
 ### 3.2 Domain Logic
 
-**GTFS Engine** выполняет после загрузки:
+**GTFS Worker** выполняет после парсинга:
 
 ```
-1. Сортировка маршрутов по номеру
-2. Фильтрация остановок с валидными координатами
-3. Построение Map: route_id → vehicle (из vehicle_trips.txt)
-4. Вычисление позиций ТС на shape-пути (buildVehiclePositions)
-5. Нормализация времён (HH:MM:SS → минуты от полуночи)
+1. Построение routeMetaById из routes.txt
+2. Индексация arrivalsByStopId из stop_times.txt + trips.txt
+3. stopIdsByRouteId и routeIdsByStopId из stop_times + trips
+4. Сортировка прибытий по времени (минуты от полуночи)
+5. Группировка shapes по shape_id
+6. Привязка firstShapeByRoute через trips.txt
+7. Индекс calendarByServiceId
 ```
 
-**Route Finder** (планировщик) — поиск пользовательского маршрута от точки до точки с пересадками:
+**Утилиты фокуса** (`src/utils/stopFocus.js`):
 
-```
-1. Привязать начальную и конечную точки к ближайшим остановкам сети
-2. Построить граф проездов по stop_times и пешеходных пересадок между близкими остановками
-3. Выполнить поиск по графу с учётом ходьбы, ожидания и штрафа за пересадку
-4. Восстановить пользовательский маршрут по сегментам: подход, поездка, пересадка, финальный проход
-```
+- `getRouteIdsForStop` — маршруты через остановку (индекс + fallback по arrivals)
+- `buildRoutePathEntries` — геометрия линий для stop-focus
+- `collectStopsForRoutes` — остановки на наборе маршрутов
 
-**Shape Interpolator** — позиция ТС на маршруте:
+**Поиск** (`src/utils/gtfsSearch.js`): `searchRoutes`, `searchStops` — с 1 символа, дедупликация направлений.
 
-```javascript
-// Предвычисленные накопленные длины отрезков
-// Бинарный поиск позиции по времени анимации
-// Линейная интерполяция между точками
-function getVehiclePos(vp) {
-  const frac = ((animTime + phaseOffset) % LOOP) / LOOP
-  // бинарный поиск + lerp
-}
-```
+**Route Finder** (планировщик) — **в разработке**. В store есть поля `plannerOpen`, `plannerFrom/To`, UI-кнопка `PlannerButton`. Полная логика поиска маршрута с пересадками реализована в legacy `public/app.html`.
+
+**Merge Engine** (слияние расписания и реалтайм ETA) — **в разработке** в React-версии. В legacy реализован через `WS.etaMap`.
 
 ### 3.3 UI Layer
 
-**Screen Router** — CSS-based переходы:
+| Компонент | Файл | Назначение |
+|-----------|------|------------|
+| `App` | `src/App.jsx` | Корневой layout, загрузка GTFS, FAB-кнопки |
+| `Splash` | `src/components/Splash.jsx` | Выбор языка (флаги SVG + подписи) |
+| `TopBar` | `src/components/UI/TopBar.jsx` | Погода + RouteChip + StopChip |
+| `MapView` | `src/components/Map/MapView.jsx` | MapLibre + deck.gl overlay |
+| `Panel` | `src/components/Panel/Panel.jsx` | BottomSheet (mobile) / Sidebar (desktop) |
+| `StopPopup` | `src/components/StopPopup/StopPopup.jsx` | Расписание остановки |
+| UI | `src/components/UI/*` | WeatherWidget, RouteChip, StopChip, SearchBar, FAB |
 
-```javascript
-// Показать экран
-scr.style.display = 'flex'
-requestAnimationFrame(() => scr.classList.add('visible'))
-// CSS: opacity + translateY transition
+Адаптивность: breakpoint 768px — мобильная нижняя панель vs десктопный сайдбар.
 
-// Скрыть
-el.classList.remove('visible')
-el.style.display = 'none'
-```
-
-**Animation Loop** — requestAnimationFrame:
-
-```javascript
-(function loop(ts) {
-  S.animTime += (ts - lastTs) * 0.12  // анимационное время
-  deckgl.setProps({ layers: buildLayers() })
-  requestAnimationFrame(loop)
-})(0)
-```
+**Погода** (`src/weather/`): `weatherSync.js` опрашивает `/api/weather` (прокси `vite-plugins/weatherProxy.js` в dev, `scripts/weather-proxy.mjs` в prod). Кэш 1 ч, лимит API 50 req/день.
 
 ---
 
@@ -191,53 +168,36 @@ el.style.display = 'none'
 ```
 Открытие URL
     │
-    ├─► Service Worker проверяет кэш
-    │       │
-    │       ├─ Кэш есть → отдаёт мгновенно (офлайн)
-    │       └─ Кэша нет → загружает с сервера
+    ├─► Workbox SW отдаёт кэшированные ассеты (офлайн)
     │
-    ├─► Splash Screen: выбор языка
+    ├─► React mount → App.jsx
     │
-    └─► loadGTFS()
+    ├─► splash === true?
+    │       ├─ Да  → Splash (выбор языка) → localStorage
+    │       └─ Нет → сразу карта
+    │
+    └─► loadGtfsFeed(lang)
             │
-            ├─► Попытка fetch(gtfsRemote)   [500ms timeout]
-            ├─► Попытка getCached()          [Cache API]
-            └─► Попытка fetch('./feed.zip')
+            ├─► fetchWithCache(gtfs_{lang}.zip)
+            ├─► gtfs.worker.js: unzip → parse → index
+            ├─► setGtfsData() → Zustand store
+            ├─► refreshFeedsInBackground() (через 3 сек)
+            └─► startVehicleTracker(wsUrl) (через 1 сек)
                     │
-                    └─► PapaParse всех CSV
-                            │
-                            └─► buildVehiclePositions()
-                                    │
-                                    └─► hideLd() → renderRoutesList()
-                                                 → rtStartSim()
-                                                 → геолокация (navigator.geolocation)
-                                                 → fallback: остановка «Краевая больница» (ПКЦ)
+                    ├─ wsUrl задан → WebSocket
+                    └─ wsUrl null  → офлайн-симулятор
 ```
 
-### Обновление ETA в реальном времени
+### Обновление позиций ТС
 
 ```
-WS событие: { type:"arrival", stop_id:"X", route_id:"Y", eta:180 }
+WS сообщение / симулятор
     │
-    ├─► WS.etaMap.set("X:Y", { etaSec:180, ts:Date.now() })
-    ├─► WS.stats.etaCount++
-    │
-    └─► Если S.selStop.stop_id === "X"
-            └─► rtInjectEtaIntoStopScreen("X")
-                    │
-                    ├─► Найти .route-block с data-route-id="Y"
-                    ├─► Вставить .eta-live-row с ETA
-                    └─► Добавить класс .realtime первому тайм-чипу
-```
-
-### TTL-очистка (каждые 10 секунд)
-
-```javascript
-setInterval(() => {
-  const now = Date.now()
-  for (const [k, v] of WS.etaMap)
-    if (now - v.ts > 45_000) WS.etaMap.delete(k)  // 45 сек TTL
-}, 10_000)
+    ├─► vehicleTracker.onMessage()
+    ├─► Throttle 1000 мс → pendingVehicles
+    └─► useAppStore.setState({ vehicles })
+            │
+            └─► MapView animation loop → buildLayers() → deck.gl
 ```
 
 ---
@@ -246,360 +206,272 @@ setInterval(() => {
 
 ### Фронтенд
 
-| Технология | Назначение | Почему выбрана |
-|-----------|-----------|----------------|
-| **deck.gl 8.9** | WebGL картографика | GPU-рендеринг 10K+ точек без лагов, TripsLayer для анимации |
-| **CartoDB Tiles** | Подложка карты | Бесплатные тайлы, русские подписи, light + dark темы |
-| **PapaParse 5.4** | CSV парсинг | Самый быстрый JS CSV-парсер, streaming режим |
-| **JSZip 3.10** | Чтение feed.zip | Нативная работа с ZIP в браузере без зависимостей |
-| **Nunito** (Google Fonts) | Типографика | Округлый, читабельный для широкой аудитории (14-80 лет) |
-| **Vanilla JS** | Логика приложения | Нет зависимостей → меньше размер → быстрее загрузка |
-| **CSS Custom Properties** | Дизайн-система | Динамическая тема, все цвета в одном месте |
+| Технология | Версия | Назначение |
+|-----------|--------|------------|
+| **React** | 19 | UI-компоненты |
+| **Vite** | 8 | Сборка, dev-сервер |
+| **Zustand** | 5 | Глобальное состояние |
+| **deck.gl** | 9 | WebGL-слои карты |
+| **MapLibre GL** | 5 | Подложка (Mapbox Tiles) |
+| **PapaParse** | 5 | CSV-парсинг в Worker |
+| **JSZip** | 3 | Распаковка GTFS ZIP |
+| **CSS Modules** | — | Стили компонентов |
+| **CSS Custom Properties** | — | Дизайн-токены в `src/index.css` |
 
 ### PWA-стек
 
 | Компонент | Технология |
 |-----------|-----------|
-| Установка | Web App Manifest |
-| Офлайн | Service Worker (Cache API) |
-| Хранение данных | localStorage (favorites) + Memory (GTFS) |
-| Иконки | SVG + PNG 192/512 |
-| Адаптивность | viewport-fit=cover + safe-area-inset |
+| Установка | Web App Manifest (vite-plugin-pwa) |
+| Офлайн | Workbox (autoUpdate) |
+| Runtime cache | Mapbox tiles, GTFS ZIP |
+| Хранение | localStorage (язык) + Cache API (фиды, тайлы) |
+| Иконки | PNG 192/512 в `public/icons/` |
 
 ### Реалтайм
 
 | Компонент | Технология |
 |-----------|-----------|
-| Протокол | WebSocket (нативный браузерный API) |
-| Формат | JSON (newline-delimited) |
-| Reconnect | setTimeout-based backoff (5 сек) |
-| Heartbeat | Ping каждые 20 секунд |
-| Fallback | Встроенный симулятор на реальных GTFS-данных |
+| Протокол | WebSocket (нативный API) |
+| Клиент | `src/realtime/vehicleTracker.js` |
+| Формат | JSON (массив vehicles или отдельные события) |
+| Reconnect | setTimeout 5 сек |
+| Fallback | Симулятор на GTFS-маршрутах |
 
 ---
 
-## 6. IndexedDB — схема хранилища
+## 6. Состояние (Zustand)
 
-> Текущая реализация использует Memory (S.parsed). Схема ниже — целевая архитектура для версии 2.0 с IndexedDB по спецификации из документации.
-
-```
-Database: gtfs_pwa_v1
-```
-
-### Stores
-
-```
-stops
-  keyPath: stop_id
-  indexes:
-    idx_name    → stop_name
-    idx_geohash → geohash      ← для поиска ближайших
-
-routes
-  keyPath: route_id
-  indexes:
-    idx_short_name → route_short_name
-
-trips
-  keyPath: trip_id
-  indexes:
-    idx_route_id → route_id
-    idx_service  → service_id
-
-stop_times_by_stop               ← ГЛАВНОЕ ХРАНИЛИЩЕ
-  keyPath: [stop_id, departure_seconds]   ← compound key
-  structure: {
-    stop_id:          "123",
-    trip_id:          "t_456",
-    route_id:         "A12",     ← денормализовано (нет JOIN)
-    departure_seconds: 28800,    ← секунды от полуночи (не строка)
-    arrival_seconds:   28800,
-    stop_sequence:    5
-  }
-  indexes:
-    PRIMARY: [stop_id, departure_seconds]   ← O(log n) range query
-    idx_trip: trip_id
-    idx_route: route_id
-
-shapes_by_route
-  keyPath: route_id
-  structure: {
-    route_id: "A12",
-    shape: [[lon, lat], ...]     ← предобработанный массив
-  }
-
-vehicles
-  keyPath: vehicle_id
-
-meta
-  keyPath: key
-  values: { key: "feed_version", value: "2026-03-28" }
-
-favorites
-  keyPath: id
-  structure: { id: "fav_1", type: "stop"|"route", ref_id: "123" }
-```
-
-### Ключевые запросы
+Файл: `src/store/appStore.js`
 
 ```javascript
-// Ближайшие прибытия для остановки (O(log n))
-const range = IDBKeyRange.bound(
-  [stopId, nowSeconds],
-  [stopId, Infinity]
-)
-const arrivals = await store.getAll(range, 10)
+// Основные срезы состояния
+{
+  // Карта
+  viewState, zoom, setViewState,
 
-// Маршруты для остановки
-const byRoute = await store.index('idx_route').getAll(routeId)
+  // Язык
+  lang, setLang,          // localStorage: kamchatka.transport.lang
 
-// Geohash поиск ближайших остановок
-const nearby = await stopsStore.index('idx_geohash').getAll(
-  IDBKeyRange.bound(geohash.substring(0,5), geohash.substring(0,5)+'~')
-)
+  // GTFS
+  allStops, allRoutes, routeMetaById, arrivalsByStopId,
+  tripToService, tripToRoute, calendarByServiceId,
+  shapesByShapeId, firstShapeByRoute, gtfsReady,
+
+  // Текущий вид (взаимоисключающие режимы)
+  route, shapePath, activeStopId,
+  stopFocus: { stop, routeIds } | null,
+  selectStop, clearStopFocus, setActiveRoute, clearRoute,
+  stopIdsByRouteId, routeIdsByStopId,
+
+  // Погода
+  weather, weatherStatus, weatherDisabled,
+
+  // Реалтайм
+  vehicles, selectedVehicleId, followVehicleId,
+
+  // Геолокация
+  userLocation,
+
+  // Поиск
+  searchOpen, searchQuery,
+
+  // Планировщик (заготовка)
+  plannerOpen, plannerFrom, plannerTo, plannerResult,
+
+  // UI
+  splash, chip, popup,
+}
 ```
+
+Стартовые координаты: `PKC = { lon: 158.700, lat: 53.015 }`, zoom 12.5.
 
 ---
 
 ## 7. Система реалтайм (WebSocket)
 
-### Состояния клиента
+### Клиент (`vehicleTracker.js`)
 
 ```
-offline ──► connecting ──► live
-   ▲              │          │
-   │         (5 сек)    (ошибка)
-   │              ▼          ▼
-   └───────── offline ◄── error
+wsUrl задан?
+    ├─ Да  → connect(url), reconnect через 5 сек
+    │         fallback: если 10 сек без данных → симулятор
+    └─ Нет → startSimulation() сразу
 ```
 
-### WS Client FSM
+Симулятор создаёт до 30 ТС по маршрутам из store, движущихся в bbox вокруг PKC.
+
+### Формат входящих данных
 
 ```javascript
-WS = {
-  state: 'offline' | 'connecting' | 'live' | 'error'
-  socket: WebSocket | null
-  simActive: boolean          // симулятор вкл/выкл
-  etaMap: Map                 // ETA по ключу stop:route
-  rtVehicles: Map             // позиции ТС
-  heartbeatTimer: number      // ping каждые 20 сек
-  reconnectTimer: number      // реконнект через 5 сек
+// Поддерживаемые поля (нормализация в onMessage)
+{
+  vehicles: [{ id, lon, lat, bearing, route_id, label, speed, timestamp }],
+  // или items: [...]
 }
 ```
 
-### Встроенный симулятор
-
-Работает без сервера, генерирует реалистичные события:
-
-```
-Каждые 2–5 секунд:
-    1. Выбрать случайную остановку из S.allStops[0..60]
-    2. Найти рейсы через неё из stopTimesArr
-    3. Вычислить ETA = scheduledTime - now + jitter(±3мин)
-    4. Эмитировать arrival event
-    5. Взять 5 ТС из S.vehiclePositions
-    6. Вычислить их текущие позиции через getVehiclePos()
-    7. Эмитировать vehicle events
-```
+Подробнее: `doc/WEBSOCKET_API.md`.
 
 ---
 
-## 8. Merge Engine
+## 8. Рендеринг карты (deck.gl)
 
-Центральная логика объединения статики и реалтайма:
+Файл: `src/components/Map/layers.js`
 
-```
-mergeArrivals(stopId, routeId) → [{time, etaSec, isLive}]
+### Режимы отрисовки
 
-1. Получить static_times из S.parsed.stopTimesArr
-   WHERE stop_id = stopId AND route trip_id in route trips
-   ORDER BY departure_time
-   FILTER departure_time >= now
+| Режим | Условие | Линии | Остановки | ТС |
+|-------|---------|-------|-----------|-----|
+| **default** | нет фокуса | — | все (zoom ≥ 13) | — |
+| **route** | `route` + `tripsData` | один shape | на маршруте (zoom ≥ 11) | на маршруте |
+| **stopFocus** | `stopFocus.routeIds` | все линии через остановку | на этих маршрутах (zoom ≥ 11) | на этих маршрутах |
 
-2. Проверить WS.etaMap.get(`${stopId}:${routeId}`)
-   IF exists AND (now - ts) < 45_000 → rtFresh = true
-
-3. Если rtFresh:
-   result[0].etaSec  = rt.etaSec
-   result[0].isLive  = true
-   → показать зелёную ETA строку
-
-4. Если !rtFresh:
-   → показать статические времена без изменений
-
-5. Рендер:
-   isLive = true  → .eta-live-row + .tchip.realtime
-   isLive = false → стандартные .tchip
-```
-
----
-
-## 9. Рендеринг карты (deck.gl)
+`setActiveRoute` сбрасывает `stopFocus`; `selectStop` сбрасывает `route`.
 
 ### Слои (в порядке отрисовки)
 
 ```
-1. TileLayer (basemap)          ← тайлы CartoDB
-2. ScatterplotLayer (stops)     ← серые точки всех остановок
-3. ScatterplotLayer (stops-hi)  ← цветные точки маршрута
-4. ScatterplotLayer (plan-stops)← зелёная/синяя точки планировщика
-5. PathLayer (shape-glow)       ← мягкая тень маршрута (opacity 30)
-6. PathLayer (shape)            ← линия маршрута
-7. TripsLayer (trip-anim)       ← анимированный след
-8. ScatterplotLayer (vehicles-halo) ← аура вокруг ТС
-9. ScatterplotLayer (vehicles)  ← тела ТС (кликабельные)
-10. ScatterplotLayer (traffic-halo) ← аура событий
-11. ScatterplotLayer (traffic)  ← маркеры дорожных событий
+1. PathLayer (route / stop-route)   ← линии маршрута(ов)
+2. ScatterplotLayer (stops)         ← остановки (фильтр по режиму)
+3. ScatterplotLayer (user)          ← геолокация (если есть)
+4. ScatterplotLayer (veh-halo)      ← аура ТС
+5. IconLayer (veh-icons)            ← SVG-иконки ТС (vehicleIcons.js)
+6. TextLayer (veh-label)            ← номера на ТС
 ```
 
-### Динамические размеры (зависят от зума)
+### Динамические размеры
 
 ```javascript
-const zr = Math.max(3, Math.min(8, S.zoom - 8))
-// zoom 12 → radiusMinPixels = 4
-// zoom 15 → radiusMinPixels = 7
-// zoom 18 → radiusMinPixels = 10
+// dynSizes(zoom) — lineW, busR, stopR зависят от зума
+const lineW = Math.max(3, Math.min(10, 2 + (z - 10) * 0.9));
 ```
 
-### onClick routing
+### Подложка
 
-```javascript
-deckgl.onClick = ({ object, layer }) => {
-  if (layer.id === 'stops')    → openStopScreen(object.stop_id)
-  if (layer.id === 'stops-hi') → openStopScreen(object.stop_id)
-  if (layer.id === 'vehicles') → openVehicleCard(object.vehicle, object.routeId)
-  if (layer.id === 'traffic')  → openTrafficEvent(object)
-}
-```
+MapLibre с кастомным raster-стилем Mapbox (`MapView.jsx`). Токен и URL тайлов — в `MapView.jsx` и `precache.js`.
 
 ---
 
-## 10. Service Worker и кэширование
+## 9. Service Worker и кэширование
 
-### Стратегия кэширования
+Конфигурация: `vite.config.js` → `VitePWA`
 
-```
-Запрос к ресурсу:
-    │
-    ├─► Тайл карты (*.png) → Cache First → Background Sync
-    ├─► feed.zip            → Network First → Cache Fallback
-    ├─► index.html          → Network First → Cache Fallback
-    └─► Google Fonts        → Cache First (долгосрочно)
+### Стратегии
+
+| Ресурс | Стратегия | Cache name |
+|--------|-----------|------------|
+| JS/CSS/HTML (build) | precache (glob) | workbox |
+| Mapbox tiles | CacheFirst | `mapbox-tiles` (6000 entries, 30 дней) |
+| GTFS ZIP (`/gtfs_*.zip`) | CacheFirst | `gtfs-feeds-v2` (loader.js, 7 дней) |
+| `/api/weather` | NetworkFirst / proxy cache | 1 ч (прокси) |
+| Тайлы региона PKC | CacheFirst (ручной) | `transit-pwa-tiles-pk-v1` |
+
+### Регистрация
+
+`registerType: 'autoUpdate'` — SW обновляется автоматически при новой сборке.
+
+---
+
+## 10. Legacy-версия
+
+`public/app.html` (~4000 строк) — монолитное Vanilla JS приложение:
+
+- Полный планировщик маршрутов (Route Finder)
+- Merge Engine (ETA + расписание)
+- Избранные маршруты/остановки
+- Тёмная/светлая тема (переключатель)
+- Дорожные события, карточка ТС
+- Service Worker: `public/sw.js`
+
+Запуск без сборки:
+
+```bash
+python3 -m http.server 8000 --directory public
+# → http://localhost:8000/app.html
 ```
 
-### Жизненный цикл SW
-
-```
-Install → Кэш shell (index.html, fonts, manifest)
-Activate → Удалить старые версии кэша
-Fetch → Роутинг запросов по стратегии
-Message → Принять команду обновления фида
-```
+Документация legacy-архитектуры (объект `S`, CartoDB tiles) описана в git-истории; текущая разработка ведётся в `src/`.
 
 ---
 
 ## 11. Производительность и ограничения
 
-### Текущие показатели
+### Текущие показатели (React-версия)
 
 | Метрика | Значение |
 |---------|---------|
-| First Contentful Paint | < 1.2 сек (при кэше) |
-| GTFS parse (17 маршрутов) | ~80 мс |
-| Рендер кадра карты (60 fps) | ~8 мс (GPU) |
-| Размер HTML+данные | ~250 КБ |
-| Потребление памяти | ~35 МБ |
+| GTFS parse (Worker) | ~100–300 мс |
+| Chunk splitting | maplibre / deckgl / react |
+| Потребление памяти | ~40–60 МБ (GTFS в памяти) |
+
+### Статус функций
+
+| Функция | React (`src/`) | Legacy (`app.html`) |
+|---------|----------------|---------------------|
+| Карта + остановки | ✅ | ✅ |
+| Расписание остановок | ✅ | ✅ |
+| Выбор маршрута на карте | ✅ | ✅ |
+| Фокус остановки (все линии) | ✅ | 🚧 |
+| Поиск маршрутов/остановок | ✅ | ✅ |
+| Виджет погоды | ✅ | 🔵 |
+| Языковые GTFS-фиды | ✅ | ✅ |
+| Мультиязычность UI | ✅ | ✅ |
+| Реалтайм / симулятор | ✅ | ✅ |
+| Планировщик A→B | 🚧 UI | ✅ |
+| Merge Engine (live ETA) | 🚧 | ✅ |
+| Избранное | 🚧 | ✅ |
+| Тёмная тема (ручная) | 🚧 auto only | ✅ |
+| Дорожные события | 🚧 | ✅ |
 
 ### Известные ограничения
 
-| Ограничение | Описание | Решение (v2) |
-|------------|----------|-------------|
-| Весь GTFS в памяти | stopTimesArr ~10K записей | IndexedDB + range queries |
-| Нет мультиязычности | ~~Только русский интерфейс~~ **Реализовано**: RU/EN/ZH/JA | — |
-| Нет push-уведомлений | Уведомления только в приложении | Web Push API |
-| Один HTML-файл | Сложно обновлять по частям | Modular build (Vite) |
-| Нет геохэша | Поиск ближайших O(n) | Geohash индекс в IndexedDB |
-
-### Масштабирование до крупного города
-
-```
-При 500+ маршрутах и 50K+ остановок:
-1. Переход на IndexedDB (chunked loading)
-2. Lazy loading stop_times_by_stop/{id}.json по запросу
-3. CDN для статических JSON-чанков
-4. WebSocket с горизонтальным масштабированием через Redis pub/sub
-```
+| Ограничение | Описание | План |
+|------------|----------|------|
+| GTFS в памяти | stop_times индексируется целиком | IndexedDB (v2) |
+| Нет chunk GTFS | Весь ZIP парсится сразу | Lazy loading по stop_id |
+| Mapbox token в коде | Публичный pk.* токен | Env variable |
 
 ---
 
-## 12. Источники GTFS-данных (фиды)
+## 12. Источники GTFS-данных
 
-### 12.1 Локальная папка (по умолчанию)
+### Языковые архивы
 
-Приложение загружает GTFS-файлы из папки `./gtfs/` относительно `index.html`.
-При локальном запуске (`python -m http.server 8001 --directory public`) это:
+| Язык | Файл | URL (loader.js) |
+|------|------|-----------------|
+| RU | `gtfs_ru.zip` | `.../public/gtfs_ru.zip` |
+| EN | `gtfs_en.zip` | `.../public/gtfs_en.zip` |
+| ZH | `gtfs_cn.zip` | `.../public/gtfs_cn.zip` |
+| JA | `gtfs_jp.zip` | `.../public/gtfs_jp.zip` |
+
+Базовый URL: `https://sayr777.github.io/kamchatka-transit/public` (настраивается в `src/gtfs/loader.js`).
+
+### Исходные файлы
 
 ```
 public/gtfs/
-├── agency.txt
-├── calendar.txt
-├── routes.txt
-├── shapes.txt
-├── stop_times.txt
-├── stops.txt
-├── trips.txt
-├── frequencies.txt       (опционально)
-├── vehicles.txt          (опционально)
-└── vehicle_trips.txt     (опционально)
+├── agency.txt, routes.txt, trips.txt, stops.txt
+├── stop_times.txt, shapes.txt, calendar.txt
+├── frequencies.txt, fare_*.txt
+├── vehicles.txt, vehicle_trips.txt   ← расширения GTFS
+└── feed_info.txt
 ```
 
-Функция загрузки: `loadFilesFromFolder()` в `index.html` (строка ~2555).
-
-### 12.2 GitHub Pages (облачное хранилище фидов)
-
-Репозиторий опубликован на GitHub Pages:
-
-| Ресурс | URL |
-|--------|-----|
-| Приложение | `https://sayr777.github.io/kamchatka-transit/public/` |
-| GTFS ZIP | `https://sayr777.github.io/kamchatka-transit/public/gtfs.zip` |
-| Остановки | `https://sayr777.github.io/kamchatka-transit/public/gtfs/stops.txt` |
-| Маршруты | `https://sayr777.github.io/kamchatka-transit/public/gtfs/routes.txt` |
-| Рейсы | `https://sayr777.github.io/kamchatka-transit/public/gtfs/trips.txt` |
-
-Когда приложение открыто через GitHub Pages, `./gtfs/` автоматически резолвится
-в эти URL — ничего дополнительно настраивать не нужно.
-
-### 12.3 Обновление фида
+### Обновление фида
 
 ```bash
-# 1. Замените файлы в папке
-cp /path/to/new/*.txt C:/T1_GIT/pwa/public/gtfs/
+# 1. Обновить .txt в public/gtfs/
+# 2. Пересобрать языковые ZIP
+npm run build:gtfs
 
-# 2. Пересоберите ZIP
-python -c "
-import zipfile, os
-with zipfile.ZipFile('public/gtfs.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
-    for f in os.listdir('public/gtfs'):
-        if f.endswith('.txt'):
-            zf.write('public/gtfs/' + f, f)
-"
+# 3. Проверить
+npm run validate
 
-# 3. Опубликуйте
-git add public/gtfs/ public/gtfs.zip
-git commit -m "Update GTFS feed"
-git push
+# 4. Собрать и задеплоить
+npm run build
 ```
 
-GitHub Pages обновится автоматически в течение 1–2 минут.
+Скрипты: `scripts/build-gtfs-langs.mjs`, `scripts/gtfs-translations.mjs`, `scripts/extract-gtfs-names.mjs`.
 
-### 12.4 Базовая карта (тайловые слои)
-
-| Тема | Провайдер | URL-шаблон |
-|------|-----------|------------|
-| Светлая | Carto Light All | `https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png` |
-| Тёмная (основа) | Carto Dark Matter (без меток) | `https://basemaps.cartocdn.com/dark_matter_nolabels/{z}/{x}/{y}{r}.png` |
-| Тёмная (метки) | Carto Dark Matter (только метки) | `https://basemaps.cartocdn.com/dark_matter_only_labels/{z}/{x}/{y}{r}.png` |
-
-В тёмной теме слой меток рендерится дважды для повышения контрастности
-номеров домов и названий улиц (функция `getBasemapLayers()`).
+Подробнее о расширениях: `doc/GTFS_EXTENSIONS.md`.

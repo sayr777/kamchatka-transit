@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { useAppStore } from '../../store/appStore';
+import { t } from '../../i18n';
 import { buildLayers } from './layers';
 import { precacheRegionTiles } from '../../gtfs/precache';
 import styles from './MapView.module.css';
@@ -38,33 +39,59 @@ export default function MapView({ onMapClick }) {
   const storeRef = useRef(useAppStore.getState());
   useEffect(() => useAppStore.subscribe((s) => { storeRef.current = s; }), []);
 
-  const vehicleClickRef = useRef(handleVehicleClick);
-  vehicleClickRef.current = handleVehicleClick;
-
   const handleStopClick = useCallback((info) => {
     if (!info.object) return;
     const stop = info.object;
-    useAppStore.setState({ activeStopId: stop.stop_id });
-    useAppStore.getState().setPopup({
+    const store = useAppStore.getState();
+    if (store.plannerPickMode) {
+      store.setPlannerFromStop(store.plannerPickMode, stop);
+      return;
+    }
+    store.selectStop(stop);
+    store.setPopup({
       type: 'stop',
       stop,
       x: info.x,
       y: info.y,
+    });
+    MapView.flyTo({
+      longitude: parseFloat(stop.stop_lon),
+      latitude: parseFloat(stop.stop_lat),
+      zoom: 15,
+      transitionDuration: 600,
     });
   }, []);
 
   const handleVehicleClick = useCallback((vehicle) => {
     if (!vehicle?.routeId) return;
     const store = useAppStore.getState();
+    store.selectVehicle(vehicle.id);
     store.setActiveRoute(vehicle.routeId);
-    store.setChip(`Маршрут ${vehicle.label || vehicle.routeId}`);
+    MapView.flyTo({
+      longitude: vehicle.lon,
+      latitude: vehicle.lat,
+      zoom: Math.max(store.zoom || 12, 14),
+      transitionDuration: 550,
+    });
   }, []);
 
+  // Ref позволяет useEffect всегда вызывать актуальный обработчик без пересоздания overlay
+  const vehicleClickRef = useRef(handleVehicleClick);
+  vehicleClickRef.current = handleVehicleClick;
+
   const handleMapClick = useCallback((info) => {
+    const store = useAppStore.getState();
+    if (store.plannerPickMode && info.coordinate) {
+      const [lon, lat] = info.coordinate;
+      store.setPlannerLonLat(store.plannerPickMode, lon, lat);
+      return;
+    }
     if (!info.object) {
-      useAppStore.getState().closePopup();
-      useAppStore.setState({ activeStopId: null });
-      useAppStore.getState().clearRoute();
+      if (Date.now() < store.focusGuardUntil) return;
+      if (store.plannerOpen) return;
+      store.closePopup();
+      store.clearStopFocus();
+      store.clearRoute();
     }
     onMapClick?.(info);
   }, [onMapClick]);
@@ -93,7 +120,7 @@ export default function MapView({ onMapClick }) {
       onClick: (info) => {
         const lid = info.layer?.id || '';
         if (lid === 'stops') return; // handled by ScatterplotLayer onClick
-        if (lid.startsWith('rt-') && info.object) {
+        if (lid.endsWith('-veh-icons') && info.object) {
           vehicleClickRef.current(info.object);
           return;
         }
@@ -117,10 +144,10 @@ export default function MapView({ onMapClick }) {
 
     map.on('dragstart', () => {
       closePopup();
-      const { followVehicleId, setChip: chip } = storeRef.current;
+      const { followVehicleId, setChip: chip, lang } = storeRef.current;
       if (followVehicleId) {
         useAppStore.setState({ followVehicleId: null });
-        chip('Режим слежения отключён');
+        chip(t('rt.tracking.off', lang));
       }
     });
 
@@ -164,6 +191,17 @@ export default function MapView({ onMapClick }) {
       if (ts - lastLayerUpdate >= LAYER_INTERVAL) {
         overlayRef.current?.setProps({ layers: buildLayers(storeRef.current, handleStopClick) });
         lastLayerUpdate = ts;
+      }
+
+      if (s.followVehicleId && mapRef.current) {
+        const tracked = s.vehicles.find((v) => v.id === s.followVehicleId);
+        if (tracked) {
+          mapRef.current.easeTo({
+            center: [tracked.lon, tracked.lat],
+            duration: 280,
+            essential: true,
+          });
+        }
       }
 
       if (DEV) {
